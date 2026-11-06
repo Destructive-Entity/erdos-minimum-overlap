@@ -1,8 +1,10 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\ifdefined\pdfgentounicode
 \input{glyphtounicode}
 \pdfgentounicode=1
+\fi
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage{geometry}
 \geometry{margin=1in}
@@ -469,7 +471,10 @@ Candidate multipliers were computed with linear programming (SciPy with the HiGH
 \item[Discrete profile.] \nolinkurl{certs/ultra_dense_8192_best.json} contains the profile of Section~\ref{subsec:profile}; \nolinkurl{scripts/certify_leaders.py} evaluates it.
 \item[{\nolinkurl{formal/Erdos36.lean}}] The Lean file of Section~\ref{sec:lean}.
 \end{description}
-The aggregate Arb report records the certificate and verifier SHA-256 hashes; \nolinkurl{certs/verified_elevated_arb_bins.csv} records each bin. Regression tests compare derivatives with the antiderivative and check rejection of inadmissible inputs, incomplete mean covers and incomplete MPFR partitions. Generative AI tools assisted manuscript revision and verification-code review. The commands are listed in Appendix~\ref{app:code}.
+The aggregate Arb report records the certificate and verifier SHA-256 hashes; \nolinkurl{certs/verified_elevated_arb_bins.csv} records each bin. Regression tests compare derivatives with the antiderivative and check rejection of inadmissible inputs, incomplete mean covers and incomplete MPFR partitions. The commands are listed in Appendix~\ref{app:code}.
+
+\paragraph{AI assistance.}
+Kreflux AI's internally developed models, together with other generative-AI tools, assisted manuscript preparation and computational-code development and review. The author retains full responsibility for all mathematical claims, code, numerical results and final text.
 
 \begin{thebibliography}{99}\sloppy
 \bibitem{erdos1955} P.~Erd\H{o}s, \emph{Some remarks on number theory}, Riveon Lematematika \textbf{9} (1955), 45--48 (in Hebrew).
