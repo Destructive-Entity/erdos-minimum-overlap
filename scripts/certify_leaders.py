@@ -42,17 +42,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CERTS = os.path.join(os.path.dirname(HERE), "certs")
 sys.path.insert(0, HERE)
 from repair_admissibility import (          # noqa: E402
-    dyadic_ints, minimal_repair, exact_score, board_score_float,
+    dyadic_ints, minimal_repair, exact_score, exact_rational_score, board_score_float,
     repaired_values, fmt_down, fmt_up, DIGITS, require,
 )
 
 # v1.1 published bound (recomputed by `make verify`); used here only for context.
 Q_V11 = Fraction(117871142698558740618278313, 309485009821345068724781056)
 
-DEFAULT_CERTS = [
-    os.path.join(CERTS, "hyra_n1024.json"),
-    os.path.join(CERTS, "lnzwz_n512_repaired.json"),
-]
+DEFAULT_CERTS = [os.path.join(CERTS, "ultra_dense_8192_best.json")]
 
 
 def certify(path):
@@ -146,15 +143,7 @@ def certify(path):
                   f"(= {float(Fraction(surplus, cap)):.3e}); every entry multiplied by "
                   f"(n/2)/sum < 1, so all stay in [0,1].")
         # exact rescaled score, exact rationals throughout
-        G = [1 - p for p in P]
-        best_t, best_m = None, None
-        for m in range(-(n - 1), n):
-            lo, hi = max(0, -m), min(n, n - m)
-            t = sum(P[i] * G[i + m] for i in range(lo, hi))
-            if best_t is None or t > best_t:
-                best_t, best_m = t, m
-        score = Fraction(2, n) * best_t
-        m_star = best_m
+        score, m_star = exact_rational_score([n * a for a in A], 2 * sum(A))
         print(f"  admissibility: {route}")
         if detail:
             print(detail)

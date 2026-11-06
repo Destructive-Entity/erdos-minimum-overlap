@@ -19,15 +19,21 @@ This repository contains the manuscript, the verification programs, the dual cer
 .
 ├── paper/
 │   ├── paper.pdf                  # Publication manuscript
-│   └── paper.tex                  # Full LaTeX source
+│   ├── paper.tex                  # Full LaTeX source
+│   └── arxiv-source.zip           # Source-only submission archive
 ├── formal/
-│   └── Erdos36.lean               # Lean 4 formalization
+│   ├── Erdos36.lean               # Algebraic reductions and explicit axioms
+│   ├── lean-toolchain             # Pinned Lean release
+│   ├── lakefile.toml
+│   └── lake-manifest.json          # Pinned Mathlib dependencies
 ├── certs/
 │   ├── erdos_elevated_candidate.json         # 178-bin dual certificate
 │   ├── ultra_dense_8192_best.json            # n = 8192 step-function profile
-│   └── verified_elevated_arb_report.json     # Report of a full Arb run
+│   ├── verified_elevated_arb_report.json     # Aggregate Arb report
+│   └── verified_elevated_arb_bins.csv        # Every certified bin
 └── scripts/
     ├── prove_erdos.py             # 160-bit Arb interval ball verifier
+    ├── test_verifiers.py          # Regression tests
     ├── verify_quadrisected_mpfr.c # 192-bit MPFR order-6 Taylor verifier source
     ├── verify_central_mpfr.py     # Compiles and runs the MPFR verifier on 32 chunks
     ├── certify_leaders.py         # Exact evaluation of the step-function profile
@@ -38,19 +44,19 @@ This repository contains the manuscript, the verification programs, the dual cer
 
 ## Replication
 
-Requirements: Python 3.9 or later with `python-flint`, `mpmath`, `numpy` and `scipy`; a C compiler with the GNU MPFR and GMP libraries; for the Lean file, Lean 4 with Mathlib.
+Requirements: Python 3.12 or later; a C compiler with the GNU MPFR and GMP development libraries; for the Lean file, the toolchain and Mathlib commit pinned in `formal/`. The Python checks were run with Python 3.13.17.
 
 ```bash
-pip install python-flint mpmath numpy scipy
+python3 -m pip install -r requirements-verification.txt
 ```
 
 ### Arb verification of the certificate
 
 ```bash
-python3 scripts/prove_erdos.py certs/erdos_elevated_candidate.json --order 4 --prec 160 --target 0.38056171
+python3 scripts/prove_erdos.py certs/erdos_elevated_candidate.json --order 4 --prec 160 --target 0.38056171 --jobs 2
 ```
 
-Certifies all 178 bins against the target $0.38056171$ and reports the worst bin, $[-1/512, 0]$, with $D \le 2.62769470$. The run takes about eight minutes on two cores.
+Certifies all 178 bins against the target $0.38056171$ and reports the worst bin, $[-1/512, 0]$, with $D \le 2.62769470$. The aggregate report records input SHA-256 hashes, and `certs/verified_elevated_arb_bins.csv` records the per-bin bounds. The verifier checks exact multiplier and harmonic coefficient inequalities before integration.
 
 ### MPFR cross-check of the central window
 
@@ -58,7 +64,7 @@ Certifies all 178 bins against the target $0.38056171$ and reports the worst bin
 python3 scripts/verify_central_mpfr.py
 ```
 
-Compiles `scripts/verify_quadrisected_mpfr.c`, evaluates the 32 chunks listed in `scripts/weighted_038056070_center_manifest.csv` and reports $D \le 2.62769373$.
+Checks the coefficient signs, spectral inequalities and exact partition of `[0, 2]`, then compiles `scripts/verify_quadrisected_mpfr.c` and evaluates all 32 chunks. The result is $D \le 2.62769373$ on the stated central window, not a global bound by itself. The option `--mean-denominator` accepts `320`, `512`, `1280` and `5120` to reproduce the manuscript table.
 
 ### Exact evaluation of the step-function profile
 
@@ -66,26 +72,51 @@ Compiles `scripts/verify_quadrisected_mpfr.c`, evaluates the 32 chunks listed in
 python3 scripts/certify_leaders.py certs/ultra_dense_8192_best.json
 ```
 
-The evaluation is in exact rational arithmetic and is slow at resolution 8192.
+The evaluator uses exact integer correlation and losslessly compresses equal consecutive blocks. For the supplied 8192 entries this reduces the computation to 512 steps without changing the represented function.
 
 ### Lean 4 file
 
-From a Lake project that depends on Mathlib:
+The repository pins Lean 4.35.0 and Mathlib commit `56a005855ea17e0b0958f73ec801ae140b0a1679`.
 
 ```bash
-lake env lean formal/Erdos36.lean
+cd formal
+lake update
+lake exe cache get
+lake build
 ```
+
+The analytic and certificate axioms are not proved by this command. The integral axioms include integrability and boundedness hypotheses.
+
+### Regression tests
+
+```bash
+python3 -m unittest discover -s scripts
+ruff check --select F,E9 scripts
+```
+
+The tests cover derivative/antiderivative agreement, a sine positive-part integral, exact feasibility checks, invalid and incomplete certificates, MPFR partition coverage, and lossless profile compression.
+
+### Manuscript build
+
+```bash
+cd paper
+pdflatex -no-shell-escape -interaction=nonstopmode -halt-on-error paper.tex
+pdflatex -no-shell-escape -interaction=nonstopmode -halt-on-error paper.tex
+```
+
+`paper/arxiv-source.zip` contains only the self-contained LaTeX source, with the bibliography included. The PDF is not included in the source archive.
 
 ## Citation
 
 ```bibtex
-@article{xing2026erdos36,
+@unpublished{xing2026erdos36,
   title={Certified Lower Bounds and Variational Dynamics for the Erd{\H{o}}s Minimum Overlap Problem},
   author={Xing, Jayden},
-  journal={arXiv preprint},
+  note={Manuscript; source and verification programs available at the repository URL},
+  url={https://github.com/Destructive-Entity/erdos-minimum-overlap},
   year={2026}
 }
 ```
 
 ## License
-MIT License. See [LICENSE](LICENSE) for details.
+Original contributions are under the MIT license. Upstream attribution and licensing scope are stated in [LICENSE](LICENSE).

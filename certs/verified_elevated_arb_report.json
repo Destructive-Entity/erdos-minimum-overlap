@@ -6,10 +6,11 @@
     "-0.0019531250",
     "0.0000000000"
   ],
-  "worst_D_upper_ball": "[2.62769469494684273712595842595298769260364567314563731339598 +/- 4.24e-60]",
-  "certified_lower_bound_ball": "[0.38056171515018019212160956863054174622935745 +/- 2.45e-45]",
-  "certified_lower_bound_lower_float": 0.38056171515018017,
+  "worst_D_upper_ball": "[2.62769469757830838017396410876069995112063748446261435620967 +/- 4.11e-60]",
+  "certified_lower_bound_ball": "[0.380561714769072341426455913949204890287782071262 +/- 6.61e-49]",
+  "certified_lower_bound_lower_float": 0.3805617147690723,
   "proved_all_checked_bins": true,
+  "proved_all_bins": true,
   "failures": [],
   "checked_bins": [
     0,
@@ -191,14 +192,17 @@
     176,
     177
   ],
-  "total_nodes": 131691,
-  "total_ambiguous_cells": 1024,
+  "total_nodes": 652847,
+  "total_ambiguous_cells": 21823,
   "max_speed_roots": 432,
-  "elapsed_seconds": 463.8837540149689,
+  "elapsed_seconds": 590.3954837322235,
   "arb_precision_bits": 160,
+  "jobs": 2,
   "cell_width": "0.00003",
   "root_pad": 0.0001,
   "samples": 120001,
   "rhs_inflate": "1e-14",
-  "order": 4
+  "order": 4,
+  "certificate_sha256": "e451b338210f42efb75a78350d904763fd344e98187adf89d9c2d1f7bd9d40fb",
+  "verifier_sha256": "c9e950a411d97b7791da001330df5a5b21ad97f9b57239e120095f4f21517384"
 }

@@ -1,6 +1,20 @@
 MIT License
 
 Copyright (c) 2026 Jayden Xing
+Copyright (c) 2026 Deng Haowen (upstream MPFR verifier and central certificate)
+
+Scope
+
+The MIT grant covers original contributions by Jayden Xing and the material
+inherited under Deng Haowen's MIT license: the MPFR verifier, central coefficient
+file and central partition manifest. The upstream repository is
+https://github.com/emerardd/erdos-36-lower-bound.
+
+scripts/prove_erdos.py derives from Liam Price's verifier at
+https://github.com/Leeham06972452/erdos-36-lower-bound. That upstream material
+has no explicit license in the cited repository and is not relicensed by this
+notice. Rights in that material remain with its author. This notice does not
+establish permission to redistribute upstream material beyond its owner's terms.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -36,6 +36,8 @@ the exact repaired rational bound with its 25-digit round-up.
 import json
 import sys
 from fractions import Fraction
+from itertools import groupby
+from math import gcd
 
 DIGITS = 25
 
@@ -111,17 +113,26 @@ def exact_score(A, L):
 
     Integer correlation; no floating point.  Returns (Fraction score, argmax m).
     """
-    n = len(A)
-    cap = 1 << L
-    G = [cap - a for a in A]
-    best_t, best_m = None, None
+    return exact_rational_score(A, 1 << L)
+
+
+def exact_rational_score(A, denominator):
+    require(bool(A) and denominator > 0, "empty profile or nonpositive denominator")
+    require(all(isinstance(a, int) and 0 <= a <= denominator for a in A),
+            "profile leaves [0,1] or has noninteger numerators")
+    block = 0
+    for _, entries in groupby(A):
+        block = gcd(block, sum(1 for _ in entries))
+    reduced = A[::block]
+    n = len(reduced)
+    G = [denominator - a for a in reduced]
+    best_t, best_m = -1, 0
     for m in range(-(n - 1), n):
         lo, hi = max(0, -m), min(n, n - m)
-        t = sum(A[i] * G[i + m] for i in range(lo, hi))
-        if best_t is None or t > best_t:
+        t = sum(reduced[i] * G[i + m] for i in range(lo, hi))
+        if t > best_t:
             best_t, best_m = t, m
-    score = Fraction(2, n) * Fraction(best_t, cap * cap)
-    return score, best_m
+    return Fraction(2 * best_t, n * denominator * denominator), best_m * block
 
 
 def _fmt(ip):

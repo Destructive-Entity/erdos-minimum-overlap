@@ -6,3 +6,7 @@ __pycache__/
 *.out
 *.toc
 *.xdv
+formal/.lake/
+.ruff_cache/
+*.olean
+*.ilean

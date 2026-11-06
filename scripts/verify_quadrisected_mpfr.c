@@ -28,6 +28,12 @@ extern void mpfr_init2(mpfr_ptr,mpfr_prec_t); extern void mpfr_clear(mpfr_ptr); 
 #ifndef PREC
 #define PREC 192
 #endif
+#ifndef MEAN_DENOM
+#define MEAN_DENOM 1280
+#endif
+#if MEAN_DENOM <= 0 || MEAN_DENOM > 1000000
+#error "MEAN_DENOM must be in 1..1000000"
+#endif
 #define SCALE 10000ULL
 #define NCOS 80
 #define NPI 400
@@ -62,7 +68,7 @@ static void load_coeffs(const char*path){
 static void prep(const char*coeffpath){
     load_coeffs(coeffpath); sinit();ii(&QCONST);ii(&QB2);ii(&PIIV);mpfr_init2(M7UP,PREC);isi(&QCONST,1);isi(&QB2,0);mpfr_const_pi(PIIV.lo,MPFR_RNDD);mpfr_const_pi(PIIV.hi,MPFR_RNDU);mpfr_set_si(M7UP,0,MPFR_RNDN);
     iv lam,tmp,B,s,c,sinc,w,coef,niv;ii(&lam);ii(&tmp);ii(&B);ii(&s);ii(&c);ii(&sinc);ii(&w);ii(&coef);ii(&niv);
-    idec(&lam,T2_LAM);iratio(&B,2,3);iratio(&tmp,1,3276800);iadd(&B,&B,&tmp);mpfr_set(B.lo,B.hi,MPFR_RNDN);imul(&tmp,&lam,&B);iadd(&QCONST,&QCONST,&tmp);isub(&QB2,&QB2,&lam);
+    idec(&lam,T2_LAM);iratio(&B,2,3);iratio(&tmp,1,2UL*MEAN_DENOM*MEAN_DENOM);iadd(&B,&B,&tmp);mpfr_set(B.lo,B.hi,MPFR_RNDN);imul(&tmp,&lam,&B);iadd(&QCONST,&QCONST,&tmp);isub(&QB2,&QB2,&lam);
     for(int j=0;j<NCOS;j++){idec(&w,COS_XI[j]);idec(&lam,COS_LAM[j]);sincosiv(&s,&c,&w);idivpos(&sinc,&s,&w);isq(&B,&sinc);mpfr_set(B.lo,B.hi,MPFR_RNDN);imul(&tmp,&lam,&B);iadd(&QCONST,&QCONST,&tmp);ineg(&coef,&lam);addterm(&w,&coef);}
     idec(&lam,WIN_LAM);iratio(&B,1,2);imul(&tmp,&lam,&B);iadd(&QCONST,&QCONST,&tmp);
     for(int n=1;n<=NPI;n++){idec(&coef,PI_COEF[n-1]);if(mpfr_cmp_si(coef.lo,0)==0&&mpfr_cmp_si(coef.hi,0)==0)continue;iui(&niv,n);imul(&w,&PIIV,&niv);addterm(&w,&coef);}

@@ -15,8 +15,11 @@ Order 4: q(x) <= q(c) + |q'(c)| r + |q''(c)| r^2 / 2 + |q'''(c)| r^3 / 6 + M4 r^
 """
 from __future__ import annotations
 
-import argparse, csv, json, math, time
+import argparse, csv, hashlib, json, math, time
 from decimal import Decimal, getcontext
+from fractions import Fraction
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -28,11 +31,25 @@ FACT = [1, 1, 2, 6, 24, 120, 720, 5040]
 
 
 def A(x: Any) -> arb:
-    return arb(str(x))
+    return arb(str(D(x)))
 
 
 def D(x: Any) -> Decimal:
-    return Decimal(str(x))
+    value = Decimal(str(x))
+    if not value.is_finite():
+        raise ValueError("Certificate scalars must be finite decimals")
+    return value
+
+
+def rational_ball(value: Fraction) -> arb:
+    return arb(value.numerator) / value.denominator
+
+
+def harmonic_index(value: Any) -> int:
+    number = D(value)
+    if number <= 0 or number != number.to_integral_value():
+        raise ValueError(f"Harmonic index must be a positive integer: {value}")
+    return int(number)
 
 
 def upper(x: arb) -> arb:
@@ -60,8 +77,12 @@ def sqrt_max0_upper(x: arb) -> arb:
 
 def rhs_expected(kind: str, param: Any, lo: str, hi: str) -> Optional[arb]:
     loD, hiD = D(lo), D(hi)
-    m2_lo = arb(2) / 3 + A(str(min(loD**2, hiD**2) / 2))
-    m2_hi = arb(2) / 3 + A(str(max(loD**2, hiD**2) / 2))
+    loQ, hiQ = Fraction(loD), Fraction(hiD)
+    if loQ > hiQ:
+        raise ValueError("Reversed mean interval")
+    min_square = Fraction(0) if loQ <= 0 <= hiQ else min(loQ**2, hiQ**2)
+    m2_lo = arb(2) / 3 + rational_ball(min_square / 2)
+    m2_hi = arb(2) / 3 + rational_ball(max(loQ**2, hiQ**2) / 2)
     if kind == "t":
         return A(hi)
     if kind == "-t":
@@ -74,7 +95,7 @@ def rhs_expected(kind: str, param: Any, lo: str, hi: str) -> Optional[arb]:
         max_abs_mu = max(abs(loD), abs(hiD))
         return arb(16) / 15 + A(str(max_abs_mu))
     if kind == "-t4":
-        return -arb(83) / 120
+        return -arb(4) / 9
     if kind == "cos":
         s = sinc(A(param)); return s * s
     if kind == "-cos":
@@ -99,25 +120,30 @@ def rhs_expected(kind: str, param: Any, lo: str, hi: str) -> Optional[arb]:
 
 
 class Term:
-    __slots__ = ("kind", "param", "lam", "B", "xi", "alpha", "parseval_terms", "n_int", "is_sin", "sign")
+    __slots__ = ("kind", "param", "lam", "B", "xi", "alpha", "parseval_terms", "parseval_derivatives", "n_int", "is_sin", "sign")
     def __init__(self, kind: str, param: Any, lam: arb, B: arb):
         self.kind = kind; self.param = param; self.lam = lam; self.B = B
         self.xi = None; self.alpha = None; self.parseval_terms = None; self.n_int = None
         self.is_sin = False; self.sign = -1
         if kind in ("cos", "-cos", "sin", "-sin"):
+            if D(param) == 0:
+                raise ValueError("Trigonometric frequencies must be nonzero")
             self.xi = A(param)
             self.is_sin = kind in ("sin", "-sin")
             self.sign = -1 if kind in ("cos", "sin") else 1
         elif kind == "cos+asin":
+            if D(param[0]) == 0:
+                raise ValueError("Trigonometric frequencies must be nonzero")
             self.xi = A(param[0]); self.alpha = A(param[1])
         elif kind in ("harmonic_cos", "cos_harmonic", "pi_cos"):
-            self.n_int = int(param)
+            self.n_int = harmonic_index(param)
             self.xi = self.n_int * arb.pi()
             self.is_sin = False
             self.sign = -1
         elif kind in ("parseval", "weighted_parseval", "parseval_combined", "parseval_spectral"):
             pi_arb = arb.pi()
             terms_list = []
+            seen = set()
             if kind in ("parseval", "weighted_parseval"):
                 if isinstance(param, dict):
                     raw_w = param.get("weights", param)
@@ -130,24 +156,40 @@ class Term:
                 else:
                     raise ValueError(f"Unknown param format for weighted_parseval: {param}")
                 for n_raw, w_raw in items:
-                    n = int(n_raw)
+                    n = harmonic_index(n_raw)
+                    if n in seen:
+                        raise ValueError(f"Repeated Parseval harmonic: {n}")
+                    seen.add(n)
+                    if not 0 <= D(w_raw) <= 1:
+                        raise ValueError(f"Parseval weight for n={n} out of [0, 1]: {w_raw}")
                     w = A(w_raw)
-                    if (w < 0) or (w > arb(1) + arb("1e-15")):
-                        raise ValueError(f"Parseval weight for n={n} out of [0, 1]: {w}")
                     xi = n * pi_arb
                     terms_list.append((n, w, xi))
             else:
-                raw_c = param.get("c", param.get("coefficients", {})) if isinstance(param, dict) else param
+                if not isinstance(param, dict) or "lambda_W" not in param:
+                    raise ValueError("Combined Parseval rows require lambda_W")
+                raw_c = param.get("c", param.get("coefficients", {}))
                 items = raw_c.items() if isinstance(raw_c, dict) else enumerate(raw_c, 1)
-                lam_W = A(param.get("lambda_W", "0")) if isinstance(param, dict) else arb(0)
+                lam_W = D(param["lambda_W"])
+                if lam_W < 0:
+                    raise ValueError("Parseval budget must be nonnegative")
                 for n_raw, c_raw in items:
-                    n = int(n_raw)
+                    n = harmonic_index(n_raw)
+                    if n in seen:
+                        raise ValueError(f"Repeated Parseval harmonic: {n}")
+                    seen.add(n)
+                    if D(c_raw) > lam_W:
+                        raise ValueError(f"Coefficient c_{n} = {c_raw} exceeds lambda_W = {lam_W}")
                     c = A(c_raw)
-                    if isinstance(param, dict) and "lambda_W" in param and c > lam_W + arb("1e-15"):
-                        raise ValueError(f"Coefficient c_{n} = {c} exceeds lambda_W = {lam_W}")
                     xi = n * pi_arb
                     terms_list.append((n, c, xi))
             self.parseval_terms = terms_list
+            self.parseval_derivatives = []
+            for _, c, xi in terms_list:
+                coefficients = [lam * c]
+                for _ in range(3):
+                    coefficients.append(coefficients[-1] * xi)
+                self.parseval_derivatives.append((xi, *coefficients))
 
 
 def phi_float(kind: str, param: Any, x: float) -> float:
@@ -222,6 +264,10 @@ def phi_vec(kind: str, param: Any, x: np.ndarray) -> np.ndarray:
 
 
 def prepare_bin(cert: Dict[str, Any], rhs_inflate: arb, order: int = 4) -> Tuple[List[Term], List[Tuple[str, Any, float, float]], arb, int]:
+    if not rhs_inflate.is_finite() or not rhs_inflate >= 0:
+        raise ValueError("RHS inflation must be nonnegative and finite")
+    if order not in (2, 4):
+        raise ValueError("Taylor order must be 2 or 4")
     terms: List[Term] = []
     fterms: List[Tuple[str, Any, float, float]] = []
     Mk = arb(0)
@@ -234,10 +280,9 @@ def prepare_bin(cert: Dict[str, Any], rhs_inflate: arb, order: int = 4) -> Tuple
         lam = A(raw["lambda"])
         e = rhs_expected(kind, param, cert["lo"], cert["hi"])
         if e is None:
-            B = A(raw["B"]) + rhs_inflate
-        else:
-            B = e.upper() + rhs_inflate
-            adjusted += 1
+            raise ValueError(f"No proved RHS for constraint kind {kind}")
+        B = e.upper() + rhs_inflate
+        adjusted += 1
         t_obj = Term(kind, param, lam, B)
         terms.append(t_obj)
         if kind in ("parseval", "weighted_parseval", "parseval_combined", "parseval_spectral"):
@@ -365,19 +410,20 @@ def q_derivs(terms: Sequence[Term], x: arb, order: int = 4) -> List[arb]:
             d[0] += lam * x2
             if order > 1: d[1] += lam * 2 * x
             if order > 2: d[2] += lam * 2
-        elif k == "t4":
-            d[0] -= lam * x4
-            if order > 1: d[1] -= lam * 4 * x3
-            if order > 2: d[2] -= lam * 12 * x2
-            if order > 3: d[3] -= lam * 24 * x
-            if order > 4: d[4] -= lam * 24
+        elif k in ("t4", "-t4"):
+            signed_lam = -lam if k == "t4" else lam
+            d[0] += signed_lam * x4
+            if order > 1: d[1] += signed_lam * 4 * x3
+            if order > 2: d[2] += signed_lam * 12 * x2
+            if order > 3: d[3] += signed_lam * 24 * x
+            if order > 4: d[4] += signed_lam * 24
         elif k in ("cos", "-cos", "sin", "-sin"):
             xi = t.xi
             s, c = (xi * x).sin_cos()
             wp = arb(1)
             for j in range(order):
                 if j > 0: wp *= xi
-                cycle = (j + (1 if t.is_sin else 0)) % 4
+                cycle = (j + (3 if t.is_sin else 0)) % 4
                 if cycle == 0: base = c
                 elif cycle == 1: base = -s
                 elif cycle == 2: base = -c
@@ -410,20 +456,14 @@ def q_derivs(terms: Sequence[Term], x: arb, order: int = 4) -> List[arb]:
         elif k == "parseval_budget":
             pass
         elif k in ("parseval", "weighted_parseval", "parseval_combined", "parseval_spectral"):
-            for n, c_val, xi in t.parseval_terms:
-                if c_val == 0:
+            for xi, c0, c1, c2, c3 in t.parseval_derivatives:
+                if c0 == 0:
                     continue
-                s, c = (xi * x).sin_cos()
-                lc = lam * c_val
-                wp = arb(1)
-                for j in range(order):
-                    if j > 0: wp *= xi
-                    cycle = j % 4
-                    if cycle == 0: base = c
-                    elif cycle == 1: base = -s
-                    elif cycle == 2: base = -c
-                    else: base = s
-                    d[j] += lc * (wp * base)
+                sine, cosine = (xi * x).sin_cos()
+                d[0] += c0 * cosine
+                if order > 1: d[1] -= c1 * sine
+                if order > 2: d[2] -= c2 * cosine
+                if order > 3: d[3] += c3 * sine
         else:
             raise ValueError(k)
     return d
@@ -540,7 +580,15 @@ def upper_integral_bin(cert: Dict[str, Any], cell_width: Decimal, root_pad: floa
 def repair_tiny_bin_gaps(data: Dict[str, Any], max_gap: Decimal = Decimal("1e-12")) -> int:
     bins = data["bins"]
     if not bins:
-        return 0
+        raise ValueError("The mean-bin cover is empty")
+    if "nbins" in data and int(data["nbins"]) != len(bins):
+        raise ValueError("Declared bin count does not match the certificate")
+    previous_lo = Decimal("-1")
+    for cert in bins:
+        lo, hi = D(cert["lo"]), D(cert["hi"])
+        if not Decimal("-1") <= lo < hi <= Decimal("1") or lo < previous_lo:
+            raise ValueError("Mean bins must be ordered nonempty subintervals of [-1, 1]")
+        previous_lo = lo
     changed = 0
     lo0 = D(bins[0]["lo"])
     if lo0 > Decimal("-1"):
@@ -573,7 +621,7 @@ def repair_tiny_bin_gaps(data: Dict[str, Any], max_gap: Decimal = Decimal("1e-12
 
 
 def parse_bins(s: Optional[str], n: int) -> List[int]:
-    if not s:
+    if s is None:
         return list(range(n))
     ans: List[int] = []
     for part in s.split(','):
@@ -585,35 +633,63 @@ def parse_bins(s: Optional[str], n: int) -> List[int]:
             ans.extend(range(int(a), int(b)+1))
         else:
             ans.append(int(part))
+    if not ans or len(set(ans)) != len(ans) or any(i < 0 or i >= n for i in ans):
+        raise ValueError("Select distinct, in-range bin indices")
     return ans
 
 
-def verify(data: Dict[str, Any], target_s: str, bins: List[int], cell_width_s: str, root_pad: float, samples: int, max_nodes: int, rhs_inflate_s: str, order: int, csv_path: Optional[Path]) -> Dict[str, Any]:
+def verify_bin_worker(argument):
+    index, cert, settings = argument
+    precision, cell_width, root_pad, samples, max_nodes, rhs_inflate, order = settings
+    ctx.prec = precision
+    getcontext().prec = 80
+    bound, info = upper_integral_bin(cert, D(cell_width), root_pad, samples,
+                                     max_nodes, A(rhs_inflate), order)
+    return index, bound.upper().str(70), info
+
+
+def verify(data: Dict[str, Any], target_s: str, bins: List[int], cell_width_s: str, root_pad: float, samples: int, max_nodes: int, rhs_inflate_s: str, order: int, csv_path: Optional[Path], jobs: int = 1) -> Dict[str, Any]:
+    if not bins or len(set(bins)) != len(bins) or any(i < 0 or i >= len(data["bins"]) for i in bins):
+        raise ValueError("Select distinct, in-range bin indices")
+    if D(target_s) <= 0 or D(cell_width_s) <= 0 or D(rhs_inflate_s) < 0:
+        raise ValueError("Target and cell width must be positive; RHS inflation must be nonnegative")
+    if not math.isfinite(root_pad) or root_pad < 0 or samples < 0 or max_nodes <= 0:
+        raise ValueError("Invalid subdivision parameters")
+    if jobs < 1:
+        raise ValueError("The worker count must be positive")
     targetD = arb(1) / A(target_s)
-    cell_width = Decimal(cell_width_s)
-    rhs_inflate = A(rhs_inflate_s)
     rows = []
     failures = []
     worst_i = None
     worst_D = None
     total_nodes = total_amb = max_roots = 0
     t0 = time.time()
-    for i in bins:
-        cert = data["bins"][i]
-        U, info = upper_integral_bin(cert, cell_width, root_pad, samples, max_nodes, rhs_inflate, order)
-        ok = U < targetD
-        if worst_D is None or U.upper() > worst_D.upper():
-            worst_D = U; worst_i = i
-        total_nodes += info["nodes"]; total_amb += info["ambiguous_cells"]; max_roots = max(max_roots, info["speed_roots"])
-        row = {
-            "bin_index": i, "lo": cert["lo"], "hi": cert["hi"],
-            "D_upper_ball": U.str(50), "D_upper_float": float(U.upper()),
-            "proved": bool(ok), **info,
-        }
-        rows.append(row)
-        if not ok:
-            failures.append(row)
-        print(f"bin {i:3d}: D <= {U.upper().str(24)}  {'OK' if ok else 'FAIL'}  nodes={info['nodes']} amb={info['ambiguous_cells']} roots={info['speed_roots']}", flush=True)
+    settings = (ctx.prec, cell_width_s, root_pad, samples, max_nodes, rhs_inflate_s, order)
+    arguments = ((i, data["bins"][i], settings) for i in bins)
+    executor = ProcessPoolExecutor(max_workers=jobs, mp_context=get_context("spawn")) if jobs > 1 else None
+    results = executor.map(verify_bin_worker, arguments) if executor else map(verify_bin_worker, arguments)
+    try:
+        for i, bound_text, info in results:
+            cert = data["bins"][i]
+            U = arb(bound_text)
+            if not U.is_finite() or not U > 0:
+                raise ValueError(f"Nonpositive or nonfinite integral bound for bin {i}")
+            ok = U < targetD
+            if worst_D is None or U.upper() > worst_D.upper():
+                worst_D = U; worst_i = i
+            total_nodes += info["nodes"]; total_amb += info["ambiguous_cells"]; max_roots = max(max_roots, info["speed_roots"])
+            row = {
+                "bin_index": i, "lo": cert["lo"], "hi": cert["hi"],
+                "D_upper_ball": U.str(50), "D_upper_float": math.nextafter(float(U.upper()), math.inf),
+                "proved": bool(ok), **info,
+            }
+            rows.append(row)
+            if not ok:
+                failures.append(row)
+            print(f"bin {i:3d}: D <= {U.upper().str(24)}  {'OK' if ok else 'FAIL'}  nodes={info['nodes']} amb={info['ambiguous_cells']} roots={info['speed_roots']}", flush=True)
+    finally:
+        if executor:
+            executor.shutdown()
     if csv_path and rows:
         with csv_path.open('w', newline='') as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
@@ -626,8 +702,9 @@ def verify(data: Dict[str, Any], target_s: str, bins: List[int], cell_width_s: s
         "worst_bin": [data["bins"][worst_i]["lo"], data["bins"][worst_i]["hi"]] if worst_i is not None else None,
         "worst_D_upper_ball": worst_D.upper().str(60) if worst_D is not None else None,
         "certified_lower_bound_ball": lower_bound.str(60) if lower_bound is not None else None,
-        "certified_lower_bound_lower_float": float(lower_bound.lower()) if lower_bound is not None else None,
+        "certified_lower_bound_lower_float": math.nextafter(float(lower_bound.lower()), -math.inf) if lower_bound is not None else None,
         "proved_all_checked_bins": len(failures) == 0,
+        "proved_all_bins": len(failures) == 0 and set(bins) == set(range(len(data["bins"]))),
         "failures": failures,
         "checked_bins": bins,
         "total_nodes": total_nodes,
@@ -635,6 +712,7 @@ def verify(data: Dict[str, Any], target_s: str, bins: List[int], cell_width_s: s
         "max_speed_roots": max_roots,
         "elapsed_seconds": time.time() - t0,
         "arb_precision_bits": ctx.prec,
+        "jobs": jobs,
         "cell_width": cell_width_s,
         "root_pad": root_pad,
         "samples": samples,
@@ -646,8 +724,9 @@ def verify(data: Dict[str, Any], target_s: str, bins: List[int], cell_width_s: s
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("certificate_json", type=Path)
-    ap.add_argument("--target", default="0.38055631")
+    ap.add_argument("--target", default="0.38056171")
     ap.add_argument("--prec", type=int, default=160)
+    ap.add_argument("--jobs", type=int, default=1)
     ap.add_argument("--order", type=int, default=4, choices=[2, 4])
     ap.add_argument("--cell-width", default="0.00003")
     ap.add_argument("--root-pad", type=float, default=1e-4)
@@ -658,6 +737,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--csv", type=Path)
     ap.add_argument("--json-report", type=Path)
     args = ap.parse_args(argv)
+    if args.prec < 64:
+        ap.error("--prec must be at least 64 bits")
     ctx.prec = args.prec
     getcontext().prec = 80
     data = json.loads(args.certificate_json.read_text(), parse_float=str, parse_int=str)
@@ -665,7 +746,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if repaired:
         print(f"Repaired {repaired} tiny bin endpoint gap(s) conservatively.")
     bins = parse_bins(args.only_bins, len(data["bins"]))
-    result = verify(data, args.target, bins, args.cell_width, args.root_pad, args.samples, args.max_nodes, args.rhs_inflate, args.order, args.csv)
+    result = verify(data, args.target, bins, args.cell_width, args.root_pad, args.samples, args.max_nodes, args.rhs_inflate, args.order, args.csv, args.jobs)
+    result["certificate_sha256"] = hashlib.sha256(args.certificate_json.read_bytes()).hexdigest()
+    result["verifier_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     if args.json_report:
         args.json_report.write_text(json.dumps(result, indent=2, ensure_ascii=False))
     print("\nArb verification summary")

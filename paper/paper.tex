@@ -1,5 +1,8 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\input{glyphtounicode}
+\pdfgentounicode=1
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage{geometry}
 \geometry{margin=1in}
@@ -15,7 +18,10 @@
     colorlinks=true,
     linkcolor=blue,
     citecolor=red,
-    urlcolor=blue
+    urlcolor=blue,
+    pdftitle={Certified Lower Bounds and Variational Dynamics for the Erdos Minimum Overlap Problem},
+    pdfauthor={Jayden Xing},
+    pdfsubject={Erdos Problem 36; dual certificates and interval arithmetic}
 }
 
 \newtheorem{theorem}{Theorem}[section]
@@ -48,7 +54,7 @@
 \maketitle
 
 \begin{abstract}
-Erd\H{o}s Problem \#36, the minimum overlap problem (1955), asks for the constant $\mu = \lim_{N \to \infty} M(N)/N$, where $M(N)$ is the minimum, over partitions $A \sqcup B = \{1, \dots, 2N\}$ with $|A| = |B| = N$, of the maximum over $k$ of the number of solutions of $a - b = k$ with $a \in A$ and $b \in B$. Working within the mean-conditioned dual certificate framework of Price, which builds on the Fourier-analytic approach of White, we prove $\mu > 0.38056171$ ($D_{\max} \le 2.62769470$). This improves the certified bounds of Price ($0.38055470$), Raval ($0.38055925$) and Deng ($0.38056070$) obtained in the same framework; higher bounds, $0.3805634$ and $0.38058706$, have been announced independently by Machillari Dowgu\~{n}iec and by Budala. The certificate uses 178 mean bins with central bins of half-width $1/512$, White's weighted Parseval constraint on 400 harmonics, and off-grid phase-shifted cosine (line-bundle) constraints obtained from a complex lens enclosure of the Fourier transform. Every bin is verified in 160-bit Arb ball arithmetic, and the central window is cross-checked by an independent 192-bit MPFR verifier using a different certificate. We also prove an exact fourth-moment identity for the overlap function, record formal first-order conditions and a heuristic Duffing-type model for near-extremal profiles, and describe a Lean 4 file in which the elementary algebraic steps are checked and the analytic inputs and the numerical certificate are stated as explicit axioms.
+Erd\H{o}s Problem \#36, the minimum overlap problem (1955), asks for the constant $\mu = \lim_{N \to \infty} M(N)/N$, where $M(N)$ is the minimum, over partitions $A \sqcup B = \{1, \dots, 2N\}$ with $|A| = |B| = N$, of the maximum over $k$ of the number of solutions of $a - b = k$ with $a \in A$ and $b \in B$. Working within the mean-conditioned dual certificate framework of Price, which builds on the Fourier-analytic approach of White, we prove $\mu > 0.38056171$ ($D_{\max} \le 2.62769470$). This improves the certified bounds of Price ($0.38055470$), Raval ($0.38055925$) and Deng ($0.38056070$) obtained in the same framework; higher bounds, $0.3805634$ and $0.38058706$, have been announced independently by Machillari Dowgu\~{n}iec and by Budala. The certificate uses 178 mean bins, with central bins $[-1/512,0]$ and $[0,1/512]$, White's weighted Parseval constraint on 400 harmonics, and off-grid phase-shifted cosine (line-bundle) constraints obtained from a complex lens enclosure of the Fourier transform. Every bin is verified in 160-bit Arb ball arithmetic, and the central window is cross-checked by an independent 192-bit MPFR verifier using a different certificate. We also prove an exact fourth-moment identity for the overlap function, record formal first-order conditions and a heuristic Duffing-type model for near-extremal profiles, and describe a Lean 4 file in which the elementary algebraic steps are checked and the analytic inputs and the numerical certificate are stated as explicit axioms.
 \end{abstract}
 
 \medskip
@@ -87,7 +93,7 @@ Erd\H{o}s observed that for even $N$ the choice $A = \{N/2+1, \dots, 3N/2\}$ giv
 \begin{equation}
 \mu \ge \frac{1}{D_{\max}} > 0.38056171, \qquad D_{\max} \le 2.62769470.
 \end{equation}
-The certificate refines the central region to bins of half-width $1/512$ and combines mean, second-moment, weighted Parseval, cosine, sine and phase-shifted cosine constraints. It is verified on all 178 bins in 160-bit Arb ball arithmetic. An independent 192-bit MPFR verifier, applied to Deng's central certificate with the second-moment bound for the window $|\bar{x}| \le 1/1280$, gives $D \le 2.62769373$ on that window (Remark~\ref{rem:mpfr}).
+The certificate refines the central region to bins of width $1/512$ and combines mean, second-moment, weighted Parseval, cosine, sine and phase-shifted cosine constraints. It is verified on all 178 bins in 160-bit Arb ball arithmetic. An independent 192-bit MPFR verifier, applied to Deng's central certificate with the second-moment bound for the window $|\bar{x}| \le 1/1280$, gives $D \le 2.62769373$ on that window (Remark~\ref{rem:mpfr}).
 \item \textbf{Fourth-moment identity.} Theorem~\ref{thm:fourth_moment} shows
 \begin{equation}
 \int_{-2}^2 x^4 M(x) \, dx = \frac{2}{5} + 4F_2 - 6F_2^2 + 8F_1F_3,
@@ -103,20 +109,20 @@ Theorem~\ref{thm:main} improves the bounds of Price, Raval and Deng, but not the
 
 \subsection{The Continuous Reduction of Swinnerton-Dyer}
 
-Let $\mathcal{H}$ denote the class of measurable functions $f: [-1, 1] \to [0, 1]$ satisfying $\int_{-1}^1 f(t) \, dt = 1$. Let $g(t) = \mathbf{1}_{[-1, 1]}(t) - f(t)$ on $\R$, so that $f$ and $g$ vanish outside $[-1, 1]$. The continuous overlap cross-correlation function $M_f: [-2, 2] \to [0, 1]$ is:
+Let $\mathcal{H}$ denote the class of measurable functions $f: [-1, 1] \to [0, 1]$ satisfying $\int_{-1}^1 f(t) \, dt = 1$. Extend $f$ by zero outside $[-1,1]$ and put $g = \mathbf{1}_{[-1,1]} - f$ on $\R$. The continuous overlap cross-correlation function $M_f: [-2, 2] \to [0, 1]$ is:
 \begin{equation}
 M_f(x) = \int_{\R} f(t) g(t+x) \, dt = \int_{-1}^1 f(t) \left(\mathbf{1}_{[-1, 1]}(t+x) - f(t+x)\right) \, dt.
 \end{equation}
-Because $f$ and $g$ are supported on $[-1, 1]$, the product $f(t)g(t+x)$ is non-zero only when $t \in [-1, 1]$ and $t+x \in [-1, 1]$, which forces $x = (t+x) - t \in [-2, 2]$. Thus $M_f(x)$ is continuous, non-negative, compactly supported on $[-2, 2]$, and satisfies the total area conservation:
+Because $f$ and $g$ are supported on $[-1, 1]$, the product $f(t)g(t+x)$ is non-zero only when $t \in [-1, 1]$ and $t+x \in [-1, 1]$, which forces $x = (t+x) - t \in [-2, 2]$. The function $M_f$ is nonnegative and supported on $[-2,2]$. Since $f,g \in L^2(\R)$, Cauchy--Schwarz gives $|M_f(x+h)-M_f(x)| \le \|f\|_2\|g(\cdot+h)-g\|_2$, which tends to zero as $h \to 0$ by continuity of translations in $L^2$. Thus $M_f$ is continuous. Fubini's theorem gives the mass identity:
 \begin{equation}
 \int_{-2}^2 M_f(x) \, dx = \left( \int_{-1}^1 f(t) \, dt \right) \left( \int_{-1}^1 g(s) \, ds \right) = 1.
 \end{equation}
 
-For any square-integrable function $h$ on $\R$, we adopt the Fourier transform convention:
+For $h \in L^1(\R)$, use the Fourier transform convention:
 \begin{equation}
 \widehat{h}(\xi) = \int_{\R} h(t) e^{-i\xi t} \, dt.
 \end{equation}
-Under this convention, for $f \in \mathcal{H}$ and $g(t) = 1 - f(t)$ supported on $[-1, 1]$, the transform of $\mathbf{1}_{[-1, 1]}$ is $\int_{-1}^1 e^{-i\xi t} \, dt = 2 \operatorname{sinc}(\xi)$, where $\operatorname{sinc}(\xi) = \frac{\sin \xi}{\xi}$, so that $\widehat{g}(\xi) = 2\operatorname{sinc}(\xi) - \widehat{f}(\xi)$. 
+Under this convention, for $f \in \mathcal{H}$ and $g(t) = 1 - f(t)$ supported on $[-1, 1]$, the transform of $\mathbf{1}_{[-1, 1]}$ is $\int_{-1}^1 e^{-i\xi t} \, dt = 2 \operatorname{sinc}(\xi)$, where $\operatorname{sinc}(\xi) = \sin(\xi)/\xi$ for $\xi \ne 0$ and $\operatorname{sinc}(0)=1$, so that $\widehat{g}(\xi) = 2\operatorname{sinc}(\xi) - \widehat{f}(\xi)$.
 
 Writing $\widehat{f}(\xi) = u + iv$ and $s = \operatorname{sinc}(\xi)$, we have $\widehat{g}(\xi) = (2s - u) - iv$. The continuous overlap cross-correlation function $M_f(x) = \int_{\R} f(t)g(t+x) \, dt$ is supported on $[-2, 2]$ and satisfies $\widehat{M_f}(\xi) = \overline{\widehat{f}(\xi)} \, \widehat{g}(\xi)$. Expanding the product:
 \begin{equation}
@@ -144,7 +150,7 @@ By a theorem of Swinnerton-Dyer, proved in \cite{haugland1996} (see also \cite{w
 To establish lower bounds on $\|M_f\|_\infty$, we use the following elementary duality principle, which underlies the certificates of \cite{price2026, deng2026}.
 \begin{proposition}[Majorant Duality Principle]
 \label{thm:majorant_duality}
-Let $p: [-2, 2] \to [0, \infty)$ be a non-negative function with total mass $\int_{-2}^2 p(x) \, dx = 1$. Suppose there exist test functions $\{\phi_j\}_{j \in \mathcal{J}}$ and constants $\{B_j\}_{j \in \mathcal{J}}$ such that:
+Let $p: [-2,2] \to [0,\infty)$ be measurable and essentially bounded, with $\int_{-2}^2 p(x)\,dx=1$. Let $\mathcal{J}$ be finite, let each $\phi_j$ be a bounded measurable real-valued function, and suppose the real constants $B_j$ satisfy:
 \begin{equation}
 \int_{-2}^2 p(x) \phi_j(x) \, dx \le B_j, \quad \forall j \in \mathcal{J}.
 \end{equation}
@@ -163,7 +169,7 @@ By non-negativity of $\lambda_j$ and the moment bounds $\int p \phi_j \le B_j$:
 \begin{equation}
 \int_{-2}^2 p(x) q(x) \, dx = \int_{-2}^2 p(x) \, dx + \sum_{j \in \mathcal{J}} \lambda_j \left( B_j - \int_{-2}^2 p(x) \phi_j(x) \, dx \right) \ge 1 + 0 = 1.
 \end{equation}
-Since $p(x) \ge 0$ pointwise:
+For almost every $x$, nonnegativity gives:
 \begin{equation}
 p(x) q(x) \le p(x) \max(0, q(x)) \le \|p\|_\infty \max(0, q(x)).
 \end{equation}
@@ -240,16 +246,16 @@ For each bin $[a_k, b_k]$ the following bounds hold for every $f \in \mathcal{H}
 \item \textbf{Second Moment Constraints ($\phi(x) = \pm x^2$)}:
   By the identity $\int x^2 M(x) \, dx = 2/3 + \bar{x}^2/2$ of Section~\ref{sec:fourth}, the bound for $\phi(x) = x^2$ is $B(x^2) = 2/3 + \max(a_k^2, b_k^2)/2$, and the bound for $\phi(x) = -x^2$ is $-2/3 - \min_{\bar{x} \in [a_k, b_k]} \bar{x}^2/2$.
 \item \textbf{Weighted Parseval Constraint}:
-  For integer harmonics $\xi = n\pi$ ($n \in \N$), $\operatorname{sinc}(n\pi) = 0$, which forces $C_{n\pi} = \int_{-2}^2 \cos(n\pi x) M(x) \, dx = -|\widehat{f}(n\pi)|^2 \le 0$. By Parseval's identity applied to the centered indicator $h(t) = f(t) - 1/2$, the Fourier coefficients satisfy $\sum_{n=1}^\infty |\widehat{f}(n\pi)|^2 \le \int_{-1}^1 h(t)^2 \, dt \le 1/2$. Therefore, for any weights $(w_n)_{n=1}^{400}$ satisfying $0 \le w_n \le 1$ (see \cite{white2022, deng2026}),
+  For integer harmonics $\xi = n\pi$ ($n \in \N$), $\operatorname{sinc}(n\pi) = 0$, which forces $C_{n\pi} = \int_{-2}^2 \cos(n\pi x) M(x) \, dx = -|\widehat{f}(n\pi)|^2 \le 0$. By Parseval's identity applied to the centered weight $h(t) = f(t) - 1/2$, the Fourier coefficients satisfy $\sum_{n=1}^\infty |\widehat{f}(n\pi)|^2 = \int_{-1}^1 h(t)^2 \, dt \le 1/2$. Therefore, for any weights $(w_n)_{n=1}^{400}$ satisfying $0 \le w_n \le 1$ (see \cite{white2022, deng2026}),
   \begin{equation}
   -\sum_{n=1}^{400} w_n \int_{-2}^2 \cos(n\pi x) M_f(x) \, dx = \sum_{n=1}^{400} w_n |\widehat{f}(n\pi)|^2 \le \frac{1}{2}.
   \end{equation}
-  In a dual function this constraint enters with a multiplier $\lambda_W > 0$, together with the constraints $\int \cos(n\pi x) M_f(x) \, dx \le 0$ with multipliers $\eta_n \ge 0$, so that $\cos(n\pi x)$ receives the combined coefficient $c_n = \lambda_W w_n - \eta_n$. Following Deng \cite{deng2026}, the certificate stores $\lambda_W$ and the $c_n$; any $c_n \le \lambda_W$ admits such a decomposition, with $w_n = c_n/\lambda_W$ and $\eta_n = 0$ if $c_n \ge 0$, and with $w_n = 0$ and $\eta_n = -c_n$ otherwise. In the certificate this constraint appears in the 16 bins of width $1/512$, with $n \le 400$, and all 6400 stored coefficients satisfy $c_n \le \lambda_W - 10^{-12}$ in exact decimal arithmetic.
+  In a dual function this constraint enters with a multiplier $\lambda_W > 0$, together with the constraints $\int \cos(n\pi x) M_f(x) \, dx \le 0$ with multipliers $\eta_n \ge 0$, so that $\cos(n\pi x)$ receives the combined coefficient $c_n = \lambda_W w_n - \eta_n$. Following Deng \cite{deng2026}, the certificate stores $\lambda_W$ and the $c_n$; any $c_n \le \lambda_W$ admits such a decomposition, with $w_n = c_n/\lambda_W$ and $\eta_n = 0$ if $c_n \ge 0$, and with $w_n = 0$ and $\eta_n = -c_n$ otherwise. In the certificate this constraint appears in the 16 bins of width $1/512$, with $n \le 400$, and all 6400 stored coefficients satisfy $c_n \le \lambda_W$ in exact decimal arithmetic, without a feasibility tolerance.
 \item \textbf{Trigonometric Constraints from the Complex Lens}:
   The cosine, sine and line-bundle bounds follow from an enclosure of the Fourier transform:
   \begin{lemma}[Complex Lens Bounds for Fourier Constraints]
   \label{lem:lens}
-  For any $f \in \mathcal{H}$ and $\xi \in \R$, let $s = \operatorname{sinc}(\xi) = \frac{\sin \xi}{\xi}$ and write $\widehat{f}(\xi) = u + iv$. Then $\widehat{f}(\xi)$ lies within the closed complex lens:
+  For any $f \in \mathcal{H}$ and $\xi \in \R$, let $s = \operatorname{sinc}(\xi)$, with $\operatorname{sinc}(0)=1$, and write $\widehat{f}(\xi) = u + iv$. Then $\widehat{f}(\xi)$ lies within the closed complex lens:
   \begin{equation}
   \mathcal{L}_s = \left\{ (u, v) \in \R^2 : u^2 + v^2 \le 1 \quad \text{and} \quad (u - 2s)^2 + v^2 \le 1 \right\}.
   \end{equation}
@@ -266,33 +272,33 @@ For each bin $[a_k, b_k]$ the following bounds hold for every $f \in \mathcal{H}
   Since $0 \le f(t) \le 1$ with $\supp(f) \subseteq [-1, 1]$ and $\int_{-1}^1 f(t) \, dt = 1$, we have $|\widehat{f}(\xi)| \le \int_{-1}^1 |f(t)| \, dt = 1 \implies u^2 + v^2 \le 1$. Similarly, $g(t) = \mathbf{1}_{[-1, 1]}(t) - f(t) \ge 0$ satisfies $\int_{-1}^1 g(t) \, dt = 1$, so $|\widehat{g}(\xi)| \le 1$. Because $\widehat{g}(\xi) = 2s - \widehat{f}(\xi) = (2s - u) - iv$, we obtain $(2s - u)^2 + v^2 \le 1$, establishing that $(u, v) \in \mathcal{L}_s$.
   
   As derived in Section~\ref{sec:continuous}, $\int_{-2}^2 \cos(\xi x) M_f(x) \, dx = 2su - u^2 - v^2$ and $\int_{-2}^2 \sin(\xi x) M_f(x) \, dx = 2sv$.
-  For \eqref{eq:bound_cos}: $2su - u^2 - v^2 = s^2 - (u - s)^2 - v^2 \le s^2$. For \eqref{eq:bound_negcos}: $u^2 + v^2 - 2su \le 1 - 2s^2$, attained when $u = s, v^2 = 1 - s^2$. For \eqref{eq:bound_sin}: $|2sv| = 2|s||v| \le 2|s|\sqrt{1 - s^2}$. For \eqref{eq:bound_linebundle}: $\operatorname{Re}\widehat{M} - \alpha \operatorname{Im}\widehat{M} = 2su - u^2 - v^2 + 2\alpha sv = (1 + \alpha^2)s^2 - (u - s)^2 - (v - \alpha s)^2 \le (1 + \alpha^2)s^2$.
+  For \eqref{eq:bound_cos}: $2su - u^2 - v^2 = s^2 - (u - s)^2 - v^2 \le s^2$. Averaging the two disk inequalities gives $(u-s)^2+v^2 \le 1-s^2$. Hence $u^2+v^2-2su \le 1-2s^2$, proving \eqref{eq:bound_negcos}; equality holds on the lens at $u=s$, $v^2=1-s^2$. The same averaged inequality gives $v^2 \le 1-s^2$. For \eqref{eq:bound_sin}: $|2sv| = 2|s||v| \le 2|s|\sqrt{1 - s^2}$. For \eqref{eq:bound_linebundle}: $\operatorname{Re}\widehat{M} - \alpha \operatorname{Im}\widehat{M} = 2su - u^2 - v^2 + 2\alpha sv = (1 + \alpha^2)s^2 - (u - s)^2 - (v - \alpha s)^2 \le (1 + \alpha^2)s^2$.
   \end{proof}
 \item \textbf{Fourth moment}:
-  Theorem~\ref{thm:fourth_moment} gives admissible bounds for $\phi(x) = \pm x^4$. They are not used in the present certificate.
+  Theorem~\ref{thm:fourth_moment} bounds the constraint $\phi(x)=x^4$. Cauchy--Schwarz and $\int M=1$ give $\int x^4M \ge (\int x^2M)^2 \ge 4/9$, so $B(-x^4)=-4/9$ is also admissible. Neither constraint is used in the present certificate.
 \end{enumerate}
 
-The certificate uses \eqref{eq:bound_cos} and \eqref{eq:bound_sin} at 147 distinct frequencies, 131 of which are not integer multiples of $\pi$, and \eqref{eq:bound_linebundle} in 299 instances, with 146 distinct pairs $(\xi, \alpha)$, 37 distinct frequencies and $\alpha \in \{\pm\frac{1}{8}, \pm\frac{1}{4}, \pm\frac{1}{2}, \pm 1, \pm 2, \pm 3\}$, in 22 bins. We call the constraints \eqref{eq:bound_linebundle} line-bundle constraints: for fixed $\xi$ they form a family indexed by the direction $(1, \alpha)$ in the plane spanned by $\cos(\xi x)$ and $\sin(\xi x)$, and $\cos(\xi x) + \alpha \sin(\xi x) = \sqrt{1 + \alpha^2} \cos(\xi x - \arctan \alpha)$ is a phase-shifted cosine.
+The certificate uses \eqref{eq:bound_cos} and \eqref{eq:bound_sin} at 156 distinct finite-decimal frequencies. None is an exact nonzero integer multiple of $\pi$; the exact integer harmonics are represented separately in the Parseval constraint. It uses \eqref{eq:bound_linebundle} in 299 instances, with 146 distinct pairs $(\xi, \alpha)$, 37 distinct frequencies and $\alpha \in \{\pm\frac{1}{8}, \pm\frac{1}{4}, \pm\frac{1}{2}, \pm 1, \pm 2, \pm 3\}$, in 22 bins. We call the constraints \eqref{eq:bound_linebundle} line-bundle constraints: for fixed $\xi$ they form a family indexed by the direction $(1, \alpha)$ in the plane spanned by $\cos(\xi x)$ and $\sin(\xi x)$, and $\cos(\xi x) + \alpha \sin(\xi x) = \sqrt{1 + \alpha^2} \cos(\xi x - \arctan \alpha)$ is a phase-shifted cosine.
 
 \subsection{Interval Arithmetic Verification}
 
-The verifier \nolinkurl{scripts/prove_erdos.py} extends the Arb verifier of Price \cite{price2026} to the constraint families above. For each bin it recomputes every right-hand side $B_j$ as an outward Arb enclosure, increased by $10^{-14}$. Candidate sign changes of $q_k$ on $[-2, 2]$ are located by floating-point sampling, and the resulting subdivision is refined by bisection. On each cell $[c - r, c + r]$ the verifier evaluates $q_k$ and its first three derivatives at $c$ in Arb and bounds the Taylor remainder by $M_4 r^4/24$, where $M_4$ is an upper bound for $\sup |q_k^{(4)}|$ computed from the multipliers and frequencies (option \texttt{--order 4}). A cell on which the enclosure of $q_k$ is nonpositive contributes nothing; a cell on which it is nonnegative contributes the Arb enclosure of $\int q_k$ obtained from an exact antiderivative; a cell of width at most $3 \times 10^{-5}$ on which the sign is not decided contributes its width times an upper bound for $q_k$. Every contribution is an upper bound, so the sum bounds $D_k$ from above, and floating-point arithmetic only influences the choice of cells. Two stored bin endpoints differ by $1.3 \times 10^{-16}$; the verifier closes this gap by enlarging one of the two bins, which only weakens its constraints. At 160-bit precision the run over all 178 bins uses 131{,}691 cells, 1024 of them undecided, and every bin is certified. Table~\ref{tab:certified_bins} lists the largest values.
+The verifier \nolinkurl{scripts/prove_erdos.py} extends the Arb verifier of Price \cite{price2026} to the constraint families above. It checks the exact decimal sign and Parseval coefficient conditions before integration and rejects unsupported constraints. Each worker uses its own Arb precision context. For each bin the verifier recomputes every right-hand side $B_j$ as an outward Arb enclosure, increased by $10^{-14}$. Candidate sign changes of $q_k$ on $[-2, 2]$ are located by floating-point sampling, and the resulting subdivision is refined by bisection. On each cell $[c - r, c + r]$ the verifier evaluates $q_k$ and its first three derivatives at $c$ in Arb and bounds the Taylor remainder by $M_4 r^4/24$, where $M_4$ is an upper bound for $\sup |q_k^{(4)}|$ computed from the multipliers and frequencies (option \texttt{--order 4}). A cell on which the enclosure of $q_k$ is nonpositive contributes nothing; a cell on which it is nonnegative contributes the Arb enclosure of $\int q_k$ obtained from an exact antiderivative; a cell of width at most $3 \times 10^{-5}$ on which the sign is not decided contributes its width times an upper bound for $q_k$. Every contribution is an upper bound, so the sum bounds $D_k$ from above, and floating-point arithmetic only influences the choice of cells. Two stored bin endpoints differ by $1.3 \times 10^{-16}$; the verifier closes this gap by enlarging one of the two bins, which only weakens its constraints. The 160-bit run certifies all 178 bins. The per-bin bounds and cell counts are recorded in \nolinkurl{certs/verified_elevated_arb_bins.csv}. Table~\ref{tab:certified_bins} lists the largest values.
 
 \begin{table}[h]
 \centering
 \small
 \begin{tabular}{lccc}
 \toprule
-\textbf{Bins} & \textbf{Mean interval} & \textbf{Certified $D \le$} & \textbf{$\mu \ge 1/D$} \\
+\textbf{Bins} & \textbf{Mean interval} & \textbf{Certified $D \le$} & \textbf{$\|M_f\|_\infty \ge$} \\
 \midrule
 88 & $[-1/512, 0]$ & $2.62769470$ & $0.38056171$ \\
-89 & $[0, 1/512]$ & $2.62769469$ & $0.38056171$ \\
-87 & $[-1/256, -1/512]$ & $2.62451074$ & $0.38102339$ \\
-90 & $[1/512, 1/256]$ & $2.62451118$ & $0.38102333$ \\
-remaining 174 bins & $|\bar{x}| \ge 1/256$ & $2.62743936$ & $0.38059869$ \\
+89 & $[0, 1/512]$ & $2.62769470$ & $0.38056171$ \\
+87 & $[-1/256, -1/512]$ & $2.62767321$ & $0.38056482$ \\
+90 & $[1/512, 1/256]$ & $2.62767321$ & $0.38056482$ \\
+remaining 174 bins & $|\bar{x}| \ge 1/256$ & $2.62753852$ & $0.38058433$ \\
 \bottomrule
 \end{tabular}
-\caption{Upper bounds for $D_k = \int_{-2}^2 \max(0, q_k(x)) \, dx$ from the 160-bit Arb verification. Bins are numbered from $0$ as in \nolinkurl{certs/erdos_elevated_candidate.json}. For the remaining bins the maximum is attained at $[-0.0375, -0.025]$ and $[0.025, 0.0375]$.}
+\caption{Upper bounds for $D_k = \int_{-2}^2 \max(0,q_k(x))\,dx$ from the 160-bit Arb verification. Bins are numbered from $0$ as in \nolinkurl{certs/erdos_elevated_candidate.json}. The last column is conditional on the stated mean interval and uses the reciprocal of the displayed upper bound. The final row bounds all remaining bins.}
 \label{tab:certified_bins}
 \end{table}
 
@@ -304,12 +310,12 @@ The minimum overlap constant satisfies
 \end{equation}
 \end{theorem}
 \begin{proof}
-By \eqref{eq:sd} it suffices to show that $\|M_f\|_\infty > 0.38056171$ for every $f \in \mathcal{H}$. The mean of $M_f$ lies in $[-1, 1]$, which is covered by the 178 bins of the certificate. In each bin every constraint is one of the admissible inequalities of Section~\ref{subsec:families} with a nonnegative multiplier, so Proposition~\ref{thm:majorant_duality} applies with $p = M_f$. The Arb verification gives $D_k \le 2.6276946949468428$ for every bin $k$, with the maximum attained at the bin $[-1/512, 0]$. Hence $\|M_f\|_\infty \ge 1/2.6276946949468428 = 0.3805617151\ldots > 0.38056171$.
+By \eqref{eq:sd} it suffices to bound $\|M_f\|_\infty$ uniformly below by a constant greater than $0.38056171$. The mean of $M_f$ lies in $[-1, 1]$, which is covered by the 178 bins of the certificate. In each bin every constraint is one of the admissible inequalities of Section~\ref{subsec:families} with a nonnegative multiplier, so Proposition~\ref{thm:majorant_duality} applies with $p = M_f$. The Arb verification gives $D_k \le 2.62769470$ for every bin $k$, with the largest computed upper bound in the bin $[-1/512,0]$. Hence $\|M_f\|_\infty \ge 1/2.62769470 > 0.38056171$, uniformly in $f$.
 \end{proof}
 
 \begin{remark}[Independent check of the central window]
 \label{rem:mpfr}
-The C program \nolinkurl{scripts/verify_quadrisected_mpfr.c} is the MPFR verifier of Deng \cite{deng2026} with one change: the second-moment bound $2/3 + 1/204800$ of the window $|\bar{x}| \le 1/320$ is replaced by $2/3 + 1/3276800$, the bound for $|\bar{x}| \le 1/1280$. It evaluates Deng's central certificate (\nolinkurl{scripts/weighted_center_combined_038056070.txt}: the second-moment multiplier, 80 cosine constraints and 400 combined harmonic coefficients, all even in $x$) with 192-bit directed rounding and a sixth-order Taylor enclosure with a global bound on the seventh derivative, over 32 chunks of $[0, 2]$, and uses $D = 2\int_0^2 \max(0, q)$. Since the certificate has no odd terms, it applies to every $f$ with $|\bar{x}| \le m$ once the second-moment bound for $m$ is used. Table~\ref{tab:window} lists the resulting bounds for several values of $m$; the program in the repository uses $m = 1/1280$. For the window $|\bar{x}| \le 1/512$ the certificate of this paper gives the smaller value $2.62769470$, so the additional constraint families account for part of the improvement over $0.38056070$, beyond the narrower central bins. Theorem~\ref{thm:main} rests on the Arb verification alone; the MPFR computation is a cross-check with an independent program and certificate.
+The C program \nolinkurl{scripts/verify_quadrisected_mpfr.c} is derived from Deng's MPFR verifier \cite{deng2026}, with the second-moment bound parameterized as $2/3+1/(2d^2)$ for the window $|\bar{x}|\le 1/d$. The default is $d=1280$. Before compilation, \nolinkurl{scripts/verify_central_mpfr.py} checks multiplier signs, the exact harmonic index set $1,\ldots,400$, the inequalities $c_n\le\lambda_W$, and that the manifest is a gap-free partition of $[0,2]$. It evaluates Deng's central certificate (\nolinkurl{scripts/weighted_center_combined_038056070.txt}: the second-moment multiplier, 80 cosine constraints and 400 combined harmonic coefficients, all even in $x$) with 192-bit directed rounding and a sixth-order Taylor enclosure with a global bound on the seventh derivative, over 32 chunks of $[0, 2]$, and uses $D = 2\int_0^2 \max(0, q)$. Since the certificate has no odd terms, it applies to every $f$ with $|\bar{x}| \le m$ once the second-moment bound for $m$ is used. Table~\ref{tab:window} lists the resulting bounds for several values of $m$; the driver selects each window with \texttt{--mean-denominator}. For the window $|\bar{x}| \le 1/512$ the certificate of this paper gives the smaller value $2.62769470$, so the additional constraint families account for part of the improvement over $0.38056070$, beyond the narrower central bins. Theorem~\ref{thm:main} rests on the Arb verification alone; the MPFR computation uses a different program and certificate on a smaller mean window, not a second verification of the 178-bin certificate.
 \end{remark}
 
 \begin{table}[h]
@@ -317,7 +323,7 @@ The C program \nolinkurl{scripts/verify_quadrisected_mpfr.c} is the MPFR verifie
 \small
 \begin{tabular}{cccc}
 \toprule
-\textbf{Window} & \textbf{$B(x^2) - 2/3$} & \textbf{Certified $D \le$} & \textbf{$\mu \ge 1/D$} \\
+\textbf{Window} & \textbf{$B(x^2) - 2/3$} & \textbf{Certified $D \le$} & \textbf{$\|M_f\|_\infty \ge$} \\
 \midrule
 $|\bar{x}| \le 1/320$ & $1/204800$ & $2.62770157$ & $0.38056072$ \\
 $|\bar{x}| \le 1/512$ & $1/524288$ & $2.62769646$ & $0.38056146$ \\
@@ -325,7 +331,7 @@ $|\bar{x}| \le 1/1280$ & $1/3276800$ & $2.62769373$ & $0.38056185$ \\
 $|\bar{x}| \le 1/5120$ & $1/52428800$ & $2.62769324$ & $0.38056192$ \\
 \bottomrule
 \end{tabular}
-\caption{Deng's central certificate evaluated by the 192-bit MPFR verifier with the second-moment bound of a central window $|\bar{x}| \le m$.}
+\caption{Deng's central certificate evaluated by the 192-bit MPFR verifier with the second-moment bound of a central window $|\bar{x}| \le m$. The last column applies only within the stated window.}
 \label{tab:window}
 \end{table}
 
@@ -359,16 +365,16 @@ Proposition \ref{prop:discrete_mass} represents the exact discrete counterpart o
 \subsection{An Exact Check of a Discretized Upper-Bound Profile}
 \label{subsec:profile}
 
-The file \nolinkurl{certs/ultra_dense_8192_best.json} contains a vector $v \in [0, 1]^{8192}$ that is constant on consecutive blocks of 16 entries, so it describes a step function $f$ with 512 equal steps on $[-1, 1]$. For such $f$ the function $M_f$ is piecewise linear with breakpoints at multiples of the step width, so $\|M_f\|_\infty$ is a maximum over finitely many lags. The stored entries sum to slightly more than $4096$; after the uniform rescaling to mass exactly $4096$, which keeps every entry in $[0, 1]$, an exact rational evaluation gives
+The file \nolinkurl{certs/ultra_dense_8192_best.json} contains 8192 JSON numbers, each interpreted as its parsed IEEE 754 binary64 value and then treated as an exact dyadic rational. The resulting vector $v \in [0,1]^{8192}$ is constant on consecutive blocks of 16 entries, so it describes a step function $f$ with 512 equal steps on $[-1, 1]$. For such $f$ the function $M_f$ is piecewise linear with breakpoints at multiples of the step width, so $\|M_f\|_\infty$ is a maximum over finitely many lags. The stored entries sum to slightly more than $4096$; after the uniform rescaling to mass exactly $4096$, which keeps every entry in $[0, 1]$, an exact rational evaluation gives
 \begin{equation}
 \mu \le \|M_f\|_\infty = 0.38085905681456\ldots < 0.38085906,
 \end{equation}
-with the maximum attained at the lag $x = 25/64$. The script \nolinkurl{scripts/certify_leaders.py} performs the same evaluation at resolution $8192$. The value agrees with the score $0.3808590568$ of the EinsteinArena entry of \texttt{lnzwz\_AI4M\_Agent} \cite{erdosproblems36}, and the profile does not improve the upper bounds listed in Section~1.
+with the maximum attained at the lag $x = 25/64$. The script \nolinkurl{scripts/certify_leaders.py} detects the constant blocks and performs the same evaluation by exact integer correlation on the 512-step representation. This coarsening preserves the function and its continuous overlap norm, since the overlap is affine between consecutive coarse-grid lags. The value agrees with the score $0.3808590568$ of the EinsteinArena entry of \texttt{lnzwz\_AI4M\_Agent} \cite{erdosproblems36}, and the profile does not improve the upper bounds listed in Section~1.
 
 \section{Variational Dynamics and Equioscillation Heuristics}
 \label{sec:variational}
 
-Lemma~\ref{lem:parity} below is proved; the other statements in this section are formal or heuristic. None of them is used in the proof of Theorem~\ref{thm:main}.
+The decomposition, parity lemma, first variation and variational identity below follow directly from the definitions. The multiplier condition is formal, and the Duffing model is heuristic. None is used in the proof of Theorem~\ref{thm:main}.
 
 \subsection{Centered Decomposition and Parity}
 
@@ -424,11 +430,11 @@ For $\omega > 0$ and $0 < k < 1$, the function $h(t) = \frac{1}{2} \operatorname
 \section{Lean 4 Formalization}
 \label{sec:lean}
 
-The file \nolinkurl{formal/Erdos36.lean} imports Mathlib and contains no \texttt{sorry}. It defines $M(N)$ as in the formal-conjectures statement of Problem~36, the class of admissible weights, the overlap function $M_f$ and its moments. Its content is of two kinds.
+The file \nolinkurl{formal/Erdos36.lean} is checked with Lean 4.35.0 and the Mathlib revision pinned in \nolinkurl{formal/lakefile.toml}; it contains no \texttt{sorry}. It defines $M(N)$ as in the formal-conjectures statement of Problem~36, the class of admissible weights, the overlap function $M_f$ and its moments. Its content is of two kinds.
 
-\emph{Statements proved in Lean.} These include the polynomial bound $\frac{2}{5} + 4u - 6u^2 \le \frac{16}{15}$; the cross-term bound $8F_1F_3 \le |E|$ under $E = -2F_1$ and $|F_3| \le \frac{1}{4}$; the identity $(1+\alpha^2)s^2 - (2su - u^2 - v^2 + 2\alpha s v) = (u-s)^2 + (v-\alpha s)^2$ behind \eqref{eq:bound_linebundle}; the arithmetic step of Proposition~\ref{thm:majorant_duality}, namely that $1 \le \int pq \le \|p\|_\infty D$ and $D > 0$ imply $\|p\|_\infty \ge 1/D$; the identity $\int R_h = (\int h)^2$ for the autocorrelation and the value $R_h(0) = \frac{1}{2}$ for $h$ with values $\pm\frac{1}{2}$; the four-term ramp formula for the length of the intersection of two intervals; and several elementary algebraic lemmas related to Section~\ref{sec:variational}.
+\emph{Statements proved in Lean.} These include the polynomial bound $\frac{2}{5} + 4u - 6u^2 \le \frac{16}{15}$; the cross-term bound $8F_1F_3 \le |E|$ under $E = -2F_1$ and $|F_3| \le \frac{1}{4}$; the identity $(1+\alpha^2)s^2 - (2su - u^2 - v^2 + 2\alpha s v) = (u-s)^2 + (v-\alpha s)^2$ behind \eqref{eq:bound_linebundle}; the arithmetic step of Proposition~\ref{thm:majorant_duality}, namely that $1 \le \int pq \le \|p\|_\infty D$ and $D > 0$ imply $\|p\|_\infty \ge 1/D$; the identity $\int R_h = (\int h)^2$ conditional on explicit Fubini and translation identities, and the value $R_h(0) = \frac{1}{2}$ for $h$ with values $\pm\frac{1}{2}$; the four-term ramp formula for the length of the intersection of two intervals; and several elementary algebraic lemmas related to Section~\ref{sec:variational}.
 
-\emph{Axioms.} The analytic inputs and the computation enter as the nine axioms listed in Table~\ref{tab:axioms}. In particular, the fourth-moment identity of Theorem~\ref{thm:fourth_moment} is stated in Lean as an axiom (its proof is the elementary computation of Section~\ref{sec:fourth}), and the statement \nolinkurl{erdos_36_lower_bound_certified}, which reads $0.38056171 \le \liminf_{N \to \infty} M(N)/N$, is derived from the axioms \nolinkurl{erdos_enhanced_arb_certificate}, \nolinkurl{erdos_certificate_bound} and \nolinkurl{continuous_reduction_to_discrete}. Integrability hypotheses are included in the axioms that involve integrals of arbitrary functions, so that each axiom is a true mathematical statement. The Lean file therefore does not verify the numerical certificate; it records how the certificate, the duality principle and Swinnerton-Dyer's theorem combine.
+\emph{Axioms.} The analytic inputs and the computation enter as the nine axioms listed in Table~\ref{tab:axioms}. In particular, the fourth-moment identity of Theorem~\ref{thm:fourth_moment} is stated in Lean as an axiom (its proof is the elementary computation of Section~\ref{sec:fourth}), and the statement \nolinkurl{erdos_36_lower_bound_certified}, which reads $0.38056171 \le \liminf_{N \to \infty} M(N)/N$, is derived from the axioms \nolinkurl{erdos_enhanced_arb_certificate}, \nolinkurl{erdos_certificate_bound} and \nolinkurl{continuous_reduction_to_discrete}. The integral axioms include the required integrability hypotheses, and the supremum bound assumes that $p$ is bounded above. These assumptions avoid treating nonintegrable functions as though the Bochner integral were linear on them. The Lean file therefore does not verify the numerical certificate; it records how the certificate, the duality principle and Swinnerton-Dyer's theorem combine.
 
 \begin{table}[h]
 \centering
@@ -445,7 +451,7 @@ The file \nolinkurl{formal/Erdos36.lean} imports Mathlib and contains no \texttt
 \texttt{continuous\_reduction\_to\_discrete} & Swinnerton-Dyer's theorem, lower-bound direction \\
 \texttt{erdos\_enhanced\_arb\_certificate} & the certificate exists with target $0.38056171$ \\
 \texttt{erdos\_certificate\_bound} & soundness of the certificate specification \\
-\texttt{erdos\_36\_upper\_bound\_construction} & $\limsup M(N)/N \le 0.3808585749$ \\
+\texttt{erdos\_36\_upper\_bound\_construction} & $\limsup M(N)/N \le 0.38085906$ \\
 \bottomrule
 \end{tabular}
 \caption{Axioms of \nolinkurl{formal/Erdos36.lean}.}
@@ -456,19 +462,19 @@ The file \nolinkurl{formal/Erdos36.lean} imports Mathlib and contains no \texttt
 \label{sec:repro}
 
 Candidate multipliers were computed with linear programming (SciPy with the HiGHS and interior-point solvers); these computations are not part of the trusted path. The repository \url{https://github.com/Destructive-Entity/erdos-minimum-overlap} contains the following files.
-\begin{description}
+\begin{description}\raggedright
 \item[{\nolinkurl{certs/erdos_elevated_candidate.json}}] The 178-bin dual certificate.
 \item[{\nolinkurl{scripts/prove_erdos.py}}] The Arb verifier, which extends the verifier of Price \cite{price2026}; \nolinkurl{certs/verified_elevated_arb_report.json} is the report of a full run.
-\item[{\nolinkurl{scripts/verify_central_mpfr.py}}] A driver that compiles \nolinkurl{scripts/verify_quadrisected_mpfr.c}, which is Deng's MPFR verifier with the modified second-moment constant, and runs it over the 32 chunks listed in \nolinkurl{scripts/weighted_038056070_center_manifest.csv}. The coefficient file \nolinkurl{scripts/weighted_center_combined_038056070.txt} is Deng's central certificate \cite{deng2026}, unchanged.
-\item[{\nolinkurl{certs/ultra_dense_8192_best.json} and \nolinkurl{scripts/certify_leaders.py}}] The profile of Section~\ref{subsec:profile} and its exact evaluation.
+\item[Central-window check.] \nolinkurl{scripts/verify_central_mpfr.py} compiles \nolinkurl{scripts/verify_quadrisected_mpfr.c}, which is Deng's MPFR verifier with the modified second-moment constant, and runs it over the 32 chunks listed in \nolinkurl{scripts/weighted_038056070_center_manifest.csv}. The coefficient file \nolinkurl{scripts/weighted_center_combined_038056070.txt} is Deng's central certificate \cite{deng2026}, unchanged.
+\item[Discrete profile.] \nolinkurl{certs/ultra_dense_8192_best.json} contains the profile of Section~\ref{subsec:profile}; \nolinkurl{scripts/certify_leaders.py} evaluates it.
 \item[{\nolinkurl{formal/Erdos36.lean}}] The Lean file of Section~\ref{sec:lean}.
 \end{description}
-On a two-core machine the Arb verification of all 178 bins took about eight minutes and the MPFR cross-check about twenty seconds. The commands are listed in Appendix~\ref{app:code}.
+The aggregate Arb report records the certificate and verifier SHA-256 hashes; \nolinkurl{certs/verified_elevated_arb_bins.csv} records each bin. Regression tests compare derivatives with the antiderivative and check rejection of inadmissible inputs, incomplete mean covers and incomplete MPFR partitions. Generative AI tools assisted manuscript revision and verification-code review. The commands are listed in Appendix~\ref{app:code}.
 
 \begin{thebibliography}{99}\sloppy
 \bibitem{erdos1955} P.~Erd\H{o}s, \emph{Some remarks on number theory}, Riveon Lematematika \textbf{9} (1955), 45--48 (in Hebrew).
 \bibitem{motzkin1956} T.~S.~Motzkin, K.~E.~Ralston, and J.~L.~Selfridge, \emph{Minimal overlapping under translation}, Bull. Amer. Math. Soc. \textbf{62} (1956), 558 (abstract).
-\bibitem{moser1959} L.~Moser, \emph{On the minimal overlap problem of Erd\H{o}s}, Acta Arith. \textbf{5} (1959), 117--119.
+\bibitem{moser1959} L.~Moser, \emph{On the minimal overlap problem of Erd\H{o}s}, Acta Arith. \textbf{5} (1959), 117--119, doi:10.4064/aa-5-2-117-119.
 \bibitem{mosermurdeshwar1966} L.~Moser and M.~G.~Murdeshwar, \emph{On the overlap of a function with the translation of its complement}, Colloq. Math. \textbf{15} (1966), 93--97.
 \bibitem{haugland1996} J.~K.~Haugland, \emph{Advances in the minimum overlap problem}, J. Number Theory \textbf{58} (1996), 71--78.
 \bibitem{haugland2016} J.~K.~Haugland, \emph{The minimum overlap problem revisited}, arXiv:1609.08000 (2016).
@@ -496,10 +502,10 @@ On a two-core machine the Arb verification of all 178 bins took about eight minu
 From the repository root, with the Python packages \texttt{python-flint}, \texttt{mpmath}, \texttt{numpy} and \texttt{scipy}, a C compiler, and the GNU MPFR and GMP libraries:
 \begin{verbatim}
 python3 scripts/prove_erdos.py certs/erdos_elevated_candidate.json \
-    --order 4 --prec 160 --target 0.38056171
+    --order 4 --prec 160 --target 0.38056171 --jobs 2
 python3 scripts/verify_central_mpfr.py
 python3 scripts/certify_leaders.py certs/ultra_dense_8192_best.json
 \end{verbatim}
-The first command certifies every bin against the target $0.38056171$ and reports the worst bin. The second compiles the MPFR verifier and checks the window $|\bar{x}| \le 1/1280$, reporting $D \le 2.62769373$. The third evaluates the profile of Section~\ref{subsec:profile} in exact rational arithmetic; at resolution $8192$ it is slow.
+The first command certifies every bin against the target $0.38056171$ and reports the worst bin. The second compiles the MPFR verifier and checks the window $|\bar{x}| \le 1/1280$, reporting $D \le 2.62769373$. The third evaluates the profile of Section~\ref{subsec:profile} by exact integer correlation after lossless block compression. To reproduce every row of Table~\ref{tab:window}, pass \texttt{--mean-denominator} with values $320$, $512$, $1280$ and $5120$ to the second command. Run the regression tests with \texttt{python3 -m unittest discover -s scripts}.
 
 \end{document}

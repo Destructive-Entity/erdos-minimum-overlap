@@ -1,18 +1,6 @@
 /-
-Erdős Problem 36: The Minimum Overlap Problem
-Formalized statement and duality architecture in Lean 4 / Mathlib.
-
-Incorporating:
-1. DeepMind formal-conjectures definition of MinOverlapQuotient
-2. Exact 4th-moment balance identity and universal partition bound
-3. The Majorant Duality Principle for finite dual certificates
-4. Bridge theorem connecting the certified Arb computation to the lower bound
-5. The Fundamental Centered Decomposition and Autocorrelation Lower Bound Principle
-6. Sinc Line-Bundle Majorants and White's Even Harmonic Non-Positivity
-7. Adaptive Central Mean Bisection and Moment Compression
-8. Fredholm Kernel Trace Bounds and Slepian PSWF Projection Inequalities
-9. The Exact Four-Term Ramp Intersection Identity for Continuous Convolution
-10. Rational Solvability of Affine Equioscillation Systems (Integer Jacobian)
+Erdős Problem 36: algebraic reductions and conditional certificate statements.
+Analytic inputs and the numerical certificate are explicit axioms.
 -/
 
 import Mathlib
@@ -39,7 +27,7 @@ noncomputable def M (n : ℕ) : ℕ :=
 noncomputable def MinOverlapQuotient (N : ℕ) := (M N : ℝ) / N
 
 def erdos_36.variants.lower.answer : ℝ := 0.38056171
-def erdos_36.variants.upper.answer : ℝ := 0.3808585749
+def erdos_36.variants.upper.answer : ℝ := 0.38085906
 
 /-! ### 2. Continuous Overlap Model & Indicator Weights -/
 
@@ -153,7 +141,9 @@ theorem exact_fourth_moment_identity (w : IndicatorWeight) :
 axiom dual_lower_bound_expansion
     {ι : Type*} [Fintype ι]
     (p : ℝ → ℝ) (hp_mass : ∫ t in Icc (-2 : ℝ) 2, p t = 1)
+    (hp_integrable : IntegrableOn p (Icc (-2 : ℝ) 2))
     (lam_mult : ι → ℝ) (B : ι → ℝ) (φ : ι → ℝ → ℝ)
+    (h_products : ∀ j, IntegrableOn (fun t => p t * φ j t) (Icc (-2 : ℝ) 2))
     (q : ℝ → ℝ) (hq_def : ∀ t, q t = 1 + ∑ j, lam_mult j * (B j - φ j t)) :
     ∫ t in Icc (-2 : ℝ) 2, p t * q t =
       1 + ∑ j, lam_mult j * (B j - ∫ t in Icc (-2 : ℝ) 2, p t * φ j t)
@@ -163,12 +153,14 @@ axiom dual_lower_bound_expansion
 lemma dual_lower_bound
     {ι : Type*} [Fintype ι]
     (p : ℝ → ℝ) (hp_mass : ∫ t in Icc (-2 : ℝ) 2, p t = 1)
+    (hp_integrable : IntegrableOn p (Icc (-2 : ℝ) 2))
     (lam_mult : ι → ℝ) (hlam_nonneg : ∀ j, 0 ≤ lam_mult j)
     (B : ι → ℝ) (φ : ι → ℝ → ℝ)
+    (h_products : ∀ j, IntegrableOn (fun t => p t * φ j t) (Icc (-2 : ℝ) 2))
     (h_bounds : ∀ j, ∫ t in Icc (-2 : ℝ) 2, p t * φ j t ≤ B j)
     (q : ℝ → ℝ) (hq_def : ∀ t, q t = 1 + ∑ j, lam_mult j * (B j - φ j t)) :
     1 ≤ ∫ t in Icc (-2 : ℝ) 2, p t * q t := by
-  rw [dual_lower_bound_expansion p hp_mass lam_mult B φ q hq_def]
+  rw [dual_lower_bound_expansion p hp_mass hp_integrable lam_mult B φ h_products q hq_def]
   have h_terms : ∀ j, 0 ≤ lam_mult j * (B j - ∫ t in Icc (-2 : ℝ) 2, p t * φ j t) := by
     intro j
     have hj1 := hlam_nonneg j
@@ -181,7 +173,10 @@ lemma dual_lower_bound
 /-- Pointwise majorization theorem for non-negative functions. -/
 axiom pointwise_majorant_integral
     (p : ℝ → ℝ) (hp_nonneg : ∀ t, 0 ≤ p t)
-    (q : ℝ → ℝ) (D : ℝ)
+    (hp_bounded : BddAbove (Set.range p))
+    (q : ℝ → ℝ)
+    (hpq_integrable : IntegrableOn (fun t => p t * q t) (Icc (-2 : ℝ) 2))
+    (hqpos_integrable : IntegrableOn (fun t => max 0 (q t)) (Icc (-2 : ℝ) 2)) (D : ℝ)
     (hD : D = ∫ t in Icc (-2 : ℝ) 2, max 0 (q t)) :
     ∫ t in Icc (-2 : ℝ) 2, p t * q t ≤ (⨆ t, p t) * D
 
@@ -189,10 +184,13 @@ axiom pointwise_majorant_integral
     The integral of p * q is bounded above by ||p||_infty * int max(0, q). -/
 lemma dual_upper_bound
     (p : ℝ → ℝ) (hp_nonneg : ∀ t, 0 ≤ p t)
+    (hp_bounded : BddAbove (Set.range p))
     (q : ℝ → ℝ)
+    (hpq_integrable : IntegrableOn (fun t => p t * q t) (Icc (-2 : ℝ) 2))
+    (hqpos_integrable : IntegrableOn (fun t => max 0 (q t)) (Icc (-2 : ℝ) 2))
     (D : ℝ) (hD_def : D = ∫ t in Icc (-2 : ℝ) 2, max 0 (q t)) :
     ∫ t in Icc (-2 : ℝ) 2, p t * q t ≤ (⨆ t, p t) * D :=
-  pointwise_majorant_integral p hp_nonneg q D hD_def
+  pointwise_majorant_integral p hp_nonneg hp_bounded q hpq_integrable hqpos_integrable D hD_def
 
 /-- Majorant Duality Principle:
     Let p: [-2, 2] -> [0, inf) have total mass 1.
@@ -205,17 +203,22 @@ lemma dual_upper_bound
 theorem majorant_duality_principle
     {ι : Type*} [Fintype ι]
     (p : ℝ → ℝ) (hp_nonneg : ∀ t, 0 ≤ p t) (hp_mass : ∫ t in Icc (-2 : ℝ) 2, p t = 1)
+    (hp_integrable : IntegrableOn p (Icc (-2 : ℝ) 2))
+    (hp_bounded : BddAbove (Set.range p))
     (lam_mult : ι → ℝ) (hlam_nonneg : ∀ j, 0 ≤ lam_mult j)
     (B : ι → ℝ) (φ : ι → ℝ → ℝ)
+    (h_products : ∀ j, IntegrableOn (fun t => p t * φ j t) (Icc (-2 : ℝ) 2))
     (h_bounds : ∀ j, ∫ t in Icc (-2 : ℝ) 2, p t * φ j t ≤ B j)
-    (q : ℝ → ℝ) (hq_def : ∀ t, q t = 1 + ∑ j, lam_mult j * (B j - φ j t))
+    (q : ℝ → ℝ)
+    (hpq_integrable : IntegrableOn (fun t => p t * q t) (Icc (-2 : ℝ) 2))
+    (hqpos_integrable : IntegrableOn (fun t => max 0 (q t)) (Icc (-2 : ℝ) 2)) (hq_def : ∀ t, q t = 1 + ∑ j, lam_mult j * (B j - φ j t))
     (D : ℝ) (hD_def : D = ∫ t in Icc (-2 : ℝ) 2, max 0 (q t))
     (hD_pos : 0 < D) :
     1 / D ≤ ⨆ t, p t := by
   have h1 : 1 ≤ ∫ t in Icc (-2 : ℝ) 2, p t * q t :=
-    dual_lower_bound p hp_mass lam_mult hlam_nonneg B φ h_bounds q hq_def
+    dual_lower_bound p hp_mass hp_integrable lam_mult hlam_nonneg B φ h_products h_bounds q hq_def
   have h2 : ∫ t in Icc (-2 : ℝ) 2, p t * q t ≤ (⨆ t, p t) * D :=
-    dual_upper_bound p hp_nonneg q D hD_def
+    dual_upper_bound p hp_nonneg hp_bounded q hpq_integrable hqpos_integrable D hD_def
   have h_chain : 1 ≤ (⨆ t, p t) * D := le_trans h1 h2
   exact (div_le_iff₀ hD_pos).mpr (by linarith)
 
@@ -239,6 +242,8 @@ structure CertifiedDualCertificate where
   h_target_valid : 1 / worst_D ≥ target_lower_bound
   h_all_bins_certified :
     ∀ w : IndicatorWeight, ∃ (q : ℝ → ℝ),
+      IntegrableOn (fun t => max 0 (q t)) (Icc (-2 : ℝ) 2) ∧
+      IntegrableOn (fun t => overlapFunction w t * q t) (Icc (-2 : ℝ) 2) ∧
       (∫ t in Icc (-2 : ℝ) 2, max 0 (q t) ≤ worst_D) ∧
       (1 ≤ ∫ t in Icc (-2 : ℝ) 2, overlapFunction w t * q t)
 
@@ -266,13 +271,13 @@ theorem erdos_36_lower_bound :
     0.38056171 ≤ atTop.liminf MinOverlapQuotient := by
   exact erdos_36_lower_bound_certified
 
-/-- Upper bound from published step-function constructions. -/
+/-- Upper bound from the shipped step function, evaluated in exact rational arithmetic. -/
 axiom erdos_36_upper_bound_construction :
-    atTop.limsup MinOverlapQuotient ≤ 0.3808585749
+    atTop.limsup MinOverlapQuotient ≤ 0.38085906
 
 /-- Upper bound for Erdős Problem #36. -/
 theorem erdos_36_upper_bound :
-    atTop.limsup MinOverlapQuotient ≤ 0.3808585749 :=
+    atTop.limsup MinOverlapQuotient ≤ 0.38085906 :=
   erdos_36_upper_bound_construction
 
 /-! ### 7. Centered Decomposition and Autocorrelation Principles -/
@@ -378,9 +383,7 @@ theorem autocorr_lower_bound_principle_fun
     R_func x ≥ (2 - |x|) / 4 - μ - |B_func x| := by
   exact autocorr_lower_bound_principle (M_func x) (R_func x) (B_func x) x μ h_decomp h_M_le
 
-/-- Origin Lower Bound on μ:
-    At x = 0 with B_h(0) = 0 and binary R_h(0) = 1/2,
-    if M(0) ≤ μ, then μ ≥ 1/2 - M(0) and the principle holds consistently. -/
+/-- If the centered decomposition gives M(0) = 0, any upper bound on M(0) is nonnegative. -/
 theorem autocorr_origin_mu_lower_bound
     (M0 R0 B0 μ : ℝ)
     (h_decomp : M0 = 1/2 + B0 - R0)
@@ -555,11 +558,7 @@ lemma shifted_interval_ramp_identity (a b c d x : ℝ) (hab : a ≤ b) (hcd : c 
   rw [h1, h2, h3, h4] at h
   exact h
 
-/-- Rational Solvability of Affine Equioscillation System:
-    For any affine linear equiripple system A * X = b with integer matrix A ∈ ℤ^{n × n}
-    and rational vector b ∈ ℚ^n, if det(A) ≠ 0, then the unique solution vector X
-    (including the equioscillation minimax constant μ*) consists purely of rational numbers.
-    Underpins the 100-digit rational identification μ* ≈ 52946 / 127807. -/
+/-- A nonzero scalar linear equation over the rationals has a rational solution. -/
 lemma affine_equiripple_rational_solvability (A_det : ℚ) (h_det : A_det ≠ 0) (b_val : ℚ) :
     ∃ (x : ℚ), A_det * x = b_val := by
   use b_val / A_det
@@ -573,7 +572,7 @@ lemma affine_equiripple_rational_solvability (A_det : ℚ) (h_det : A_det ≠ 0)
     When each even cosine harmonic satisfies C_{n*π} = -E_n ≤ 0,
     the negative weighted sum satisfies:
       -∑ n, w_n * C_{n*π} = ∑ n, w_n * E_n ≥ 0.
-    Underpins White's Parseval harmonic budget -∑_{n=1}^{400} w_n C_{n*π} ≤ 1/2. -/
+    This is nonnegativity only; the upper Parseval budget is not proved here. -/
 lemma weighted_harmonic_budget_bound
     {ι : Type*} [Fintype ι]
     (w : ι → ℝ) (E : ι → ℝ)
@@ -661,10 +660,7 @@ lemma vacuum_boundary_slack_nonneg (h K_val : ℝ) (h_vac : h = -1/2) (h_cone : 
   have h_prod : 0 ≤ (1/2) * (-K_val) := mul_nonneg h_half_pos h_neg_pos
   linarith
 
-/-- Canonical Grid-Step Modulus Algebraic Square:
-    At the canonical discrete-to-continuum transition parameter k* = 2 / √5,
-    the complementary modulus squared exactly matches the grid step Δt = 1/5:
-      1 - (2 / √5)^2 = 1/5. -/
+/-- The identity 1 - (2 / sqrt 5)^2 = 1/5, with no extremality assertion. -/
 lemma canonical_modulus_square :
     1 - (2 / Real.sqrt 5)^2 = (1 : ℝ) / 5 := by
   have h5 : (0 : ℝ) < 5 := by norm_num
