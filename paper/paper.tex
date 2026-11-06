@@ -8,7 +8,7 @@
 \usepackage{microtype}
 \usepackage{cite}
 \usepackage{url}
-\def\UrlBreaks{\do\/\do-}
+\def\UrlBreaks{\do\/\do-\do\_}
 \usepackage{listings}
 \usepackage{xcolor}
 
@@ -50,7 +50,7 @@
 \title{\textbf{Certified Lower Bounds and Variational Dynamics for the Erd\H{o}s Minimum Overlap Problem}}
 
 \author{
-  \textbf{Jayden Xing}\thanks{Founder \& CEO, Kreflux (\href{https://kreflux.com}{kreflux.com}); FreezeSol (\href{https://freezesol.com}{freezesol.com}). Correspondence: \texttt{jayden@kreflux.com}.}
+  \textbf{Jayden Xing}\thanks{Founder \& CEO, Kreflux (\href{https://kreflux.com}{kreflux.com}); FreezeSol (\href{https://freezesol.com}{freezesol.com}). Correspondence: \texttt{jayden@kreflux.com}. Replication code and formal proofs: \url{https://github.com/Destructive-Entity/erdos-minimum-overlap}.}
 }
 
 \date{October 2026}
@@ -642,7 +642,7 @@ The computational pipeline consists of four automated modules designed for rigor
 \item \textbf{Machine-Checked Formal Verification}: Foundational algebraic identities, fourth-moment cancellations, and majorant duality reductions are formalized in Lean 4 and mechanically verified against Mathlib (with continuous interval quadrature across the 178 bins interfaced via an explicit bridge axiom as detailed in Remark \ref{rem:lean_bridge}).
 \end{itemize}
 
-All source code, dual certificates, verification engines, and Lean 4 proofs are openly provided in the accompanying replication package for complete independent verification (including \nolinkurl{certs/erdos_elevated_candidate.json}, \nolinkurl{scripts/verify_quadrisected_mpfr.c}, \nolinkurl{scripts/prove_erdos.py}, and \nolinkurl{formal/Erdos36.lean}).
+{\sloppy All source code, dual certificates, verification engines, and Lean 4 proofs are openly available at \url{https://github.com/Destructive-Entity/erdos-minimum-overlap} (including \nolinkurl{certs/erdos_elevated_candidate.json}, \nolinkurl{scripts/verify_quadrisected_mpfr.c}, \nolinkurl{scripts/prove_erdos.py}, and \nolinkurl{formal/Erdos36.lean}).\par}
 
 \begin{thebibliography}{99}\sloppy
 \bibitem{erdos1955} P.~Erd\H{o}s, \emph{Some remarks on number theory}, Riveon Lematematika \textbf{9} (1955), 45--48 (in Hebrew).
