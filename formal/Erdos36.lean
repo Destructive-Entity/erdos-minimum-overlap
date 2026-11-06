@@ -6,7 +6,7 @@ Incorporating:
 1. DeepMind formal-conjectures definition of MinOverlapQuotient
 2. Exact 4th-moment balance identity and universal partition bound
 3. The Majorant Duality Principle for finite dual certificates
-4. Bridge theorem connecting certified Arb ball arithmetic to the lower bound record
+4. Bridge theorem connecting the certified Arb computation to the lower bound
 5. The Fundamental Centered Decomposition and Autocorrelation Lower Bound Principle
 6. Sinc Line-Bundle Majorants and White's Even Harmonic Non-Positivity
 7. Adaptive Central Mean Bisection and Moment Compression
@@ -38,7 +38,7 @@ noncomputable def M (n : ℕ) : ℕ :=
 
 noncomputable def MinOverlapQuotient (N : ℕ) := (M N : ℝ) / N
 
-def erdos_36.variants.lower.answer : ℝ := 0.38056239
+def erdos_36.variants.lower.answer : ℝ := 0.38056171
 def erdos_36.variants.upper.answer : ℝ := 0.3808585749
 
 /-! ### 2. Continuous Overlap Model & Indicator Weights -/
@@ -74,7 +74,7 @@ noncomputable def overlapNorm (w : IndicatorWeight) : ℝ :=
 
 /-! ### 3. Analytical Lemmas: 4th-Moment Identity & Partition Bounds -/
 
-/-- Lemma 3.1: Elementary algebraic maximization of the 4th-moment quadratic in F_2.
+/-- Elementary algebraic maximization of the 4th-moment quadratic in F_2.
     Proves that 2/5 + 4*u - 6*u^2 <= 16/15 holds universally for all real u. -/
 lemma quadratic_vertex_bound (u : ℝ) : (2 : ℝ)/5 + 4 * u - 6 * u^2 ≤ 16/15 := by
   have h : 16/15 - ((2 : ℝ)/5 + 4 * u - 6 * u^2) = 6 * (u - 1/3)^2 := by ring
@@ -85,9 +85,8 @@ lemma quadratic_vertex_bound (u : ℝ) : (2 : ℝ)/5 + 4 * u - 6 * u^2 ≤ 16/15
 axiom f_third_moment_neyman_pearson (w : IndicatorWeight) :
     -(1/4 : ℝ) ≤ fMoment w 3 ∧ fMoment w 3 ≤ 1/4
 
-/-- Lemma 3.2: Universal bound on the 3rd moment of indicator functions on [-1, 1].
-    Follows by Neyman-Pearson rearrangement: -1/4 <= F_3 <= 1/4.
-    Fully machine-checked without sorry placeholders. -/
+/-- Universal bound on the 3rd moment of indicator functions on [-1, 1].
+    Follows by Neyman-Pearson rearrangement: -1/4 <= F_3 <= 1/4. -/
 lemma f_third_moment_bound (w : IndicatorWeight) :
     |fMoment w 3| ≤ 1/4 := by
   have ⟨h_lo, h_hi⟩ := f_third_moment_neyman_pearson w
@@ -97,17 +96,15 @@ lemma f_third_moment_bound (w : IndicatorWeight) :
 axiom mean_overlap_fubini (w : IndicatorWeight) :
     ∃ G1 : ℝ, meanOverlap w = G1 - fMoment w 1 ∧ fMoment w 1 + G1 = 0
 
-/-- Lemma 3.3: Mean coupling of the 1st moment: E(M) = -2 * F_1.
-    Derived from int (y - t) g(y) f(t) dy dt = G_1 - F_1 = -F_1 - F_1 = -2 F_1.
-    Fully machine-checked with ZERO sorry. -/
+/-- Mean coupling of the 1st moment: E(M) = -2 * F_1.
+    Derived from int (y - t) g(y) f(t) dy dt = G_1 - F_1 = -F_1 - F_1 = -2 F_1. -/
 lemma mean_first_moment_relation (w : IndicatorWeight) :
     meanOverlap w = -2 * fMoment w 1 := by
   obtain ⟨G1, h_mean, h_sum⟩ := mean_overlap_fubini w
   linarith
 
-/-- Lemma 3.4 (Exact Algebraic Cross-Term Bound):
-    Proves that 8 * F_1 * F_3 <= |E| whenever E = -2 * F_1 and |F_3| <= 1/4.
-    Fully machine-checked without sorry placeholders. -/
+/-- Exact Algebraic Cross-Term Bound:
+    Proves that 8 * F_1 * F_3 <= |E| whenever E = -2 * F_1 and |F_3| <= 1/4. -/
 lemma cross_term_bound (E F1 F3 : ℝ) (hE : E = -2 * F1) (hF3 : |F3| ≤ 1/4) :
     8 * F1 * F3 ≤ |E| := by
   have hF1 : F1 = -E / 2 := by linarith
@@ -130,12 +127,11 @@ axiom binomial_fourth_moment_identity (w : IndicatorWeight) :
     ∫ x in Icc (-2 : ℝ) 2, x^4 * overlapFunction w x =
       2/5 + 4 * fMoment w 2 - 6 * (fMoment w 2)^2 + 8 * fMoment w 1 * fMoment w 3
 
-/-- Theorem 3.5 (Exact Fourth Moment Identity & Universal Partition Bound):
+/-- Exact Fourth Moment Identity & Universal Partition Bound:
     For any measurable partition weight f: [-1, 1] -> [0, 1] with int f = 1:
     1. The 4th moment expands identically with complete cancellation of F_4:
        int_{-2}^2 x^4 M(x) dx = 2/5 + 4*F_2 - 6*F_2^2 + 8*F_1*F_3.
-    2. Consequently, int_{-2}^2 x^4 M(x) dx <= 16/15 + |E(M)|.
-    Fully machine-checked with ZERO sorry. -/
+    2. Consequently, int_{-2}^2 x^4 M(x) dx <= 16/15 + |E(M)|. -/
 theorem exact_fourth_moment_identity (w : IndicatorWeight) :
     (∫ x in Icc (-2 : ℝ) 2, x^4 * overlapFunction w x =
       2/5 + 4 * fMoment w 2 - 6 * (fMoment w 2)^2 + 8 * fMoment w 1 * fMoment w 3) ∧
@@ -162,9 +158,8 @@ axiom dual_lower_bound_expansion
     ∫ t in Icc (-2 : ℝ) 2, p t * q t =
       1 + ∑ j, lam_mult j * (B j - ∫ t in Icc (-2 : ℝ) 2, p t * φ j t)
 
-/-- Lemma 4.1 (Dual Lower Integral Bound):
-    The integral of p * q is at least 1 when lambda_j >= 0 and int p phi_j <= B_j.
-    Fully machine-checked with ZERO sorry. -/
+/-- Dual Lower Integral Bound:
+    The integral of p * q is at least 1 when lambda_j >= 0 and int p phi_j <= B_j. -/
 lemma dual_lower_bound
     {ι : Type*} [Fintype ι]
     (p : ℝ → ℝ) (hp_mass : ∫ t in Icc (-2 : ℝ) 2, p t = 1)
@@ -190,9 +185,8 @@ axiom pointwise_majorant_integral
     (hD : D = ∫ t in Icc (-2 : ℝ) 2, max 0 (q t)) :
     ∫ t in Icc (-2 : ℝ) 2, p t * q t ≤ (⨆ t, p t) * D
 
-/-- Lemma 4.2 (Dual Upper Majorant Bound):
-    The integral of p * q is bounded above by ||p||_infty * int max(0, q).
-    Fully machine-checked with ZERO sorry. -/
+/-- Dual Upper Majorant Bound:
+    The integral of p * q is bounded above by ||p||_infty * int max(0, q). -/
 lemma dual_upper_bound
     (p : ℝ → ℝ) (hp_nonneg : ∀ t, 0 ≤ p t)
     (q : ℝ → ℝ)
@@ -200,14 +194,14 @@ lemma dual_upper_bound
     ∫ t in Icc (-2 : ℝ) 2, p t * q t ≤ (⨆ t, p t) * D :=
   pointwise_majorant_integral p hp_nonneg q D hD_def
 
-/-- Theorem 4.3 (Majorant Duality Principle):
+/-- Majorant Duality Principle:
     Let p: [-2, 2] -> [0, inf) have total mass 1.
     Suppose a dual majorant is constructed as:
       q(t) = 1 + sum_{j in s} lambda_j * (B_j - phi_j(t)),  lambda_j >= 0,
     where each test function phi_j satisfies int_{-2}^2 p(t) phi_j(t) dt <= B_j.
     Then the supremum norm of p is bounded below by the inverse positive-part integral:
       ||p||_infty >= 1 / int_{-2}^2 max(0, q(t)) dt.
-    Formally deduced from Lemmas 4.1 and 4.2 without sorry. -/
+    Deduced from the dual lower integral bound and the dual upper majorant bound. -/
 theorem majorant_duality_principle
     {ι : Type*} [Fintype ι]
     (p : ℝ → ℝ) (hp_nonneg : ∀ t, 0 ≤ p t) (hp_mass : ∫ t in Icc (-2 : ℝ) 2, p t = 1)
@@ -227,8 +221,8 @@ theorem majorant_duality_principle
 
 /-! ### 5. Continuous-to-Discrete Reduction Bridge -/
 
-/-- Theorem 5.1 (White 2022 / Motzkin-Ralston-Selfridge):
-    The discrete minimum overlap quotient is asymptotically bounded below
+/-- Swinnerton-Dyer's theorem (proved in Haugland 1996), lower-bound direction:
+    the discrete minimum overlap quotient is asymptotically bounded below
     by the continuous infimum over all valid indicator weights. -/
 axiom continuous_reduction_to_discrete (c : ℝ)
     (hc : ∀ w : IndicatorWeight, c ≤ overlapNorm w) :
@@ -236,7 +230,7 @@ axiom continuous_reduction_to_discrete (c : ℝ)
 
 /-! ### 6. Certified Finite Ball Certificate Bridge -/
 
-/-- Abstract specification of a certified interval dual certificate over 174 bins. -/
+/-- Abstract specification of a verified mean-conditioned dual certificate. -/
 structure CertifiedDualCertificate where
   num_bins : ℕ
   target_lower_bound : ℝ
@@ -248,41 +242,36 @@ structure CertifiedDualCertificate where
       (∫ t in Icc (-2 : ℝ) 2, max 0 (q t) ≤ worst_D) ∧
       (1 ≤ ∫ t in Icc (-2 : ℝ) 2, overlapFunction w t * q t)
 
-/-- Axiom / Verified Certificate Import:
-    The dual certificate verified via directed 192-bit MPFR / 160-bit Arb
-    rigorously satisfies the CertifiedDualCertificate specification with target 0.38056236. -/
+/-- Certificate import: the 178-bin dual certificate verified in 160-bit Arb ball
+    arithmetic satisfies the CertifiedDualCertificate specification with target 0.38056171. -/
 axiom erdos_enhanced_arb_certificate :
-  ∃ cert : CertifiedDualCertificate, cert.target_lower_bound = 0.38056239
+  ∃ cert : CertifiedDualCertificate, cert.target_lower_bound = 0.38056171
 
 /-- Soundness theorem: A certified dual certificate implies the uniform lower bound. -/
 axiom erdos_certificate_bound (cert : CertifiedDualCertificate) :
   ∀ w : IndicatorWeight, cert.target_lower_bound ≤ overlapNorm w
 
-/-- Theorem 6.1 (Bridge Theorem: Certified Arb Lower Bound):
-    Mechanically verifies that the certified finite dual certificate implies
-    the formal asymptotic lower bound on Erdős Problem #36.
-    Fully machine-checked with ZERO sorry. -/
+/-- Bridge theorem: the certificate axioms and Swinnerton-Dyer's theorem imply
+    the asymptotic lower bound for Erdős Problem #36. -/
 theorem erdos_36_lower_bound_certified :
-    0.38056239 ≤ atTop.liminf MinOverlapQuotient := by
+    0.38056171 ≤ atTop.liminf MinOverlapQuotient := by
   obtain ⟨cert, hcert⟩ := erdos_enhanced_arb_certificate
   rw [← hcert]
   apply continuous_reduction_to_discrete
   intro w
   exact erdos_certificate_bound cert w
 
-/-- Main lower bound record target for Erdős Problem #36.
-    Fully machine-checked with ZERO sorry. -/
-theorem erdos_36_lower_record :
-    0.38056239 ≤ atTop.liminf MinOverlapQuotient := by
+/-- Lower bound for Erdős Problem #36. -/
+theorem erdos_36_lower_bound :
+    0.38056171 ≤ atTop.liminf MinOverlapQuotient := by
   exact erdos_36_lower_bound_certified
 
-/-- Best constructive upper bound from the Einstein Arena benchmark. -/
+/-- Upper bound from published step-function constructions. -/
 axiom erdos_36_upper_bound_construction :
     atTop.limsup MinOverlapQuotient ≤ 0.3808585749
 
-/-- Theorem 6.2 (Current Upper Record): Upper bound c < 0.3808585749.
-    Fully machine-checked with ZERO sorry. -/
-theorem erdos_36_upper_record :
+/-- Upper bound for Erdős Problem #36. -/
+theorem erdos_36_upper_bound :
     atTop.limsup MinOverlapQuotient ≤ 0.3808585749 :=
   erdos_36_upper_bound_construction
 
@@ -296,13 +285,12 @@ noncomputable def autoCorr (h : ℝ → ℝ) (x : ℝ) : ℝ :=
 noncomputable def boundaryDrift (h : ℝ → ℝ) (x : ℝ) : ℝ :=
   (1 / 2) * ∫ t in Icc (-1 : ℝ) 1, (if x + t ∈ Icc (-1 : ℝ) 1 then h t - h (x + t) else 0)
 
-/-- Lemma 7.1 (Autocorrelation Integral Conservation):
+/-- Autocorrelation Integral Conservation:
     For any centered weight h: ℝ → ℝ with support on [-1, 1],
     by Fubini integration and translation invariance,
     the integral of the autocorrelation function over [-2, 2] factors exactly
     as the square of the total mass on [-1, 1]:
-      ∫_{-2}^2 R_h(x) dx = (∫_{-1}^1 h(t) dt)^2.
-    Fully machine-checked with ZERO sorry. -/
+      ∫_{-2}^2 R_h(x) dx = (∫_{-1}^1 h(t) dt)^2. -/
 lemma autocorr_integral_conservation
     (h : ℝ → ℝ) (R_h : ℝ → ℝ)
     (h_swap : ∫ x in Icc (-2 : ℝ) 2, R_h x =
@@ -321,11 +309,10 @@ lemma autocorr_integral_conservation
   rw [integral_mul_const]
   ring
 
-/-- Lemma 7.2 (Zero-Mean Implication for Autocorrelation):
+/-- Zero-Mean Implication for Autocorrelation:
     If the autocorrelation integral is conserved (∫ R_h = (∫ h)^2) and h has zero mean (∫ h = 0),
     then the total integral of the autocorrelation is identically zero:
-      ∫_{-2}^2 R_h(x) dx = 0.
-    Fully machine-checked with ZERO sorry. -/
+      ∫_{-2}^2 R_h(x) dx = 0. -/
 lemma autocorr_integral_zero_of_mean_zero
     (h : ℝ → ℝ) (R_h : ℝ → ℝ)
     (h_cons : ∫ x in Icc (-2 : ℝ) 2, R_h x = (∫ t in Icc (-1 : ℝ) 1, h t)^2)
@@ -334,8 +321,7 @@ lemma autocorr_integral_zero_of_mean_zero
   rw [h_cons, h_zero]
   ring
 
-/-- Scalar algebraic version of the zero-mean conservation property.
-    Fully machine-checked with ZERO sorry. -/
+/-- Scalar algebraic version of the zero-mean conservation property. -/
 lemma autocorr_integral_zero_of_scalar_zero
     (int_R int_h : ℝ)
     (h_cons : int_R = int_h^2)
@@ -344,11 +330,10 @@ lemma autocorr_integral_zero_of_scalar_zero
   rw [h_cons, h_zero]
   ring
 
-/-- Lemma 7.3 (Origin Value of Binary Autocorrelation):
+/-- Origin Value of Binary Autocorrelation:
     For any binary centered function h taking values in {-1/2, 1/2} on [-1, 1],
     the origin autocorrelation value is identically 1/2:
-      R_h(0) = 1/2.
-    Fully machine-checked with ZERO sorry using Mathlib measure theory. -/
+      R_h(0) = 1/2. -/
 lemma autocorr_origin_binary (h : ℝ → ℝ)
     (h_bin : ∀ t ∈ Icc (-1 : ℝ) 1, h t = 1/2 ∨ h t = -1/2) :
     autoCorr h 0 = 1/2 := by
@@ -362,19 +347,18 @@ lemma autocorr_origin_binary (h : ℝ → ℝ)
     split_ifs
     rw [zero_add]
     rcases h_bin t ht with hpos | hneg
-    · rw [hpos]; ring
-    · rw [hneg]; ring
+    . rw [hpos]; ring
+    . rw [hneg]; ring
   rw [h_int]
   rw [setIntegral_const]
   norm_num
 
-/-- Theorem 7.4 (Autocorrelation Lower Bound Principle):
+/-- Autocorrelation Lower Bound Principle:
     Under the fundamental algebraic decomposition:
       M(x) = (2 - |x|)/4 + B_h(x) - R_h(x),
     whenever the overlap function satisfies an upper bound M(x) ≤ μ,
-    the autocorrelation R_h(x) is rigorously bounded below by:
-      R_h(x) ≥ (2 - |x|)/4 - μ - |B_h(x)|.
-    Fully machine-checked with ZERO sorry. -/
+    the autocorrelation R_h(x) is bounded below by:
+      R_h(x) ≥ (2 - |x|)/4 - μ - |B_h(x)|. -/
 theorem autocorr_lower_bound_principle
     (M_val R_val B_val x μ : ℝ)
     (h_decomp : M_val = (2 - |x|) / 4 + B_val - R_val)
@@ -386,8 +370,7 @@ theorem autocorr_lower_bound_principle
     linarith
   linarith
 
-/-- Function-level corollary of the Autocorrelation Lower Bound Principle.
-    Fully machine-checked with ZERO sorry. -/
+/-- Function-level corollary of the Autocorrelation Lower Bound Principle. -/
 theorem autocorr_lower_bound_principle_fun
     (M_func R_func B_func : ℝ → ℝ) (x μ : ℝ)
     (h_decomp : M_func x = (2 - |x|) / 4 + B_func x - R_func x)
@@ -395,10 +378,9 @@ theorem autocorr_lower_bound_principle_fun
     R_func x ≥ (2 - |x|) / 4 - μ - |B_func x| := by
   exact autocorr_lower_bound_principle (M_func x) (R_func x) (B_func x) x μ h_decomp h_M_le
 
-/-- Corollary 7.5 (Origin Lower Bound on μ):
+/-- Origin Lower Bound on μ:
     At x = 0 with B_h(0) = 0 and binary R_h(0) = 1/2,
-    if M(0) ≤ μ, then μ ≥ 1/2 - M(0) and the principle holds consistently.
-    Fully machine-checked with ZERO sorry. -/
+    if M(0) ≤ μ, then μ ≥ 1/2 - M(0) and the principle holds consistently. -/
 theorem autocorr_origin_mu_lower_bound
     (M0 R0 B0 μ : ℝ)
     (h_decomp : M0 = 1/2 + B0 - R0)
@@ -410,14 +392,13 @@ theorem autocorr_origin_mu_lower_bound
 
 /-! ### 8. Spectral Harmonics, Central Bisection, and Equioscillation Identities -/
 
-/-- Lemma 8.1 (Sinc Line-Bundle Majorant Bound):
+/-- Sinc Line-Bundle Majorant Bound:
     For any frequency xi and direction alpha, writing the Fourier components
     of the indicator f as u = Re f_hat and v = Im f_hat, and s = sinc(xi),
     the linear combination satisfies:
       2 * s * u - u^2 - v^2 + 2 * alpha * s * v ≤ (1 + alpha^2) * s^2.
     This holds identically because the difference is (u - s)^2 + (v - alpha * s)^2 ≥ 0.
-    Underpins the 132 off-grid complex lens line bundles in the certified world record.
-    Fully machine-checked with ZERO sorry. -/
+    This is the identity behind the line-bundle constraints of the certificate. -/
 lemma complex_lens_line_bundle_bound (s u v alpha : ℝ) :
     2 * s * u - u^2 - v^2 + 2 * alpha * s * v ≤ (1 + alpha^2) * s^2 := by
   have h : (1 + alpha^2) * s^2 - (2 * s * u - u^2 - v^2 + 2 * alpha * s * v) =
@@ -425,35 +406,32 @@ lemma complex_lens_line_bundle_bound (s u v alpha : ℝ) :
   have hsq : 0 ≤ (u - s)^2 + (v - alpha * s)^2 := by positivity
   linarith
 
-/-- Corollary 8.2 (Pure Cosine Sinc Bound):
+/-- Pure Cosine Sinc Bound:
     When alpha = 0, the real Fourier mode satisfies:
-      2 * s * u - u^2 - v^2 ≤ s^2.
-    Fully machine-checked with ZERO sorry. -/
+      2 * s * u - u^2 - v^2 ≤ s^2. -/
 lemma sinc_cosine_mode_bound (s u v : ℝ) :
     2 * s * u - u^2 - v^2 ≤ s^2 := by
   have h := complex_lens_line_bundle_bound s u v 0
   linarith
 
-/-- Corollary 8.3 (Even Harmonic Non-Positivity / White 2022):
+/-- Even Harmonic Non-Positivity / White 2022:
     At even harmonics xi = n * pi with n >= 1, sinc(n * pi) = 0.
     Thus s = 0, giving the exact non-positivity of even Fourier modes:
-      -(u^2 + v^2) ≤ 0.
-    Fully machine-checked with ZERO sorry. -/
+      -(u^2 + v^2) ≤ 0. -/
 lemma even_harmonic_nonpositive (u v : ℝ) :
     -(u^2 + v^2) ≤ 0 := by
   have h := sinc_cosine_mode_bound 0 u v
   linarith
 
-/-- Lemma 8.4 (Mean-Conditioned Second-Moment Bound):
+/-- Mean-Conditioned Second-Moment Bound:
     Leo Moser's second moment variance inequality bounds:
       ∫_{-2}^2 (x - x_bar)^2 M(x) dx ≤ 2/3.
     For any distribution M of total mass 1 with mean x_bar = E(M),
     the second moment expands as:
       ∫_{-2}^2 x^2 M(x) dx ≤ 2/3 + x_bar^2.
     Consequently, conditioning on the bisected mean interval |x_bar| ≤ m
-    rigorously bounds the second moment by:
-      ∫_{-2}^2 x^2 M(x) dx ≤ 2/3 + m^2.
-    Fully machine-checked with ZERO sorry. -/
+    bounds the second moment by:
+      ∫_{-2}^2 x^2 M(x) dx ≤ 2/3 + m^2. -/
 lemma central_mean_second_moment_bound (M2 x_bar m : ℝ)
     (h_variance : M2 - x_bar^2 ≤ 2/3)
     (h_mean_abs : |x_bar| ≤ m) :
@@ -463,10 +441,9 @@ lemma central_mean_second_moment_bound (M2 x_bar m : ℝ)
     nlinarith [abs_nonneg x_bar]
   linarith
 
-/-- Corollary 8.5 (Central Bisection Bottleneck Compression):
+/-- Central Bisection Bottleneck Compression:
     In the central sub-bin [-0.0015625, 0.0015625] where m = 1/640,
-    the second moment is bounded by 2/3 + 1/409600.
-    Fully machine-checked with ZERO sorry. -/
+    the second moment is bounded by 2/3 + 1/409600. -/
 lemma central_bisection_second_moment_numeric (M2 x_bar : ℝ)
     (h_variance : M2 - x_bar^2 ≤ 2/3)
     (h_mean_abs : |x_bar| ≤ 1/640) :
@@ -475,30 +452,27 @@ lemma central_bisection_second_moment_numeric (M2 x_bar : ℝ)
   have h_val : (1/640 : ℝ)^2 = 1/409600 := by norm_num
   linarith
 
-/-- Lemma 8.6 (Universal Pointwise Indicator Product Bound):
+/-- Universal Pointwise Indicator Product Bound:
     For any real value y, the product y * (1 - y) is bounded by 1/4.
-    Underpins the continuous overlap bound and Fredholm trace bounds.
-    Fully machine-checked with ZERO sorry. -/
+    Underpins the continuous overlap bound and Fredholm trace bounds. -/
 lemma indicator_product_universal_bound (y : ℝ) :
     y * (1 - y) ≤ 1/4 := by
   have h : 1/4 - y * (1 - y) = (y - 1/2)^2 := by ring
   have hsq : 0 ≤ (y - 1/2)^2 := by positivity
   linarith
 
-/-- Lemma 8.7 (Fredholm Trace Bound):
+/-- Fredholm Trace Bound:
     The origin value of the continuous overlap function satisfies M(0) ≤ 1/2.
     Consequently, the Fredholm trace of K_M, Tr(K_M) = 2 * M(0), satisfies:
-      Tr(K_M) ≤ 1.
-    Fully machine-checked with ZERO sorry. -/
+      Tr(K_M) ≤ 1. -/
 lemma fredholm_trace_bound (M0 : ℝ) (hM0_le : M0 ≤ 1/2) :
     2 * M0 ≤ 1 := by
   linarith
 
-/-- Lemma 8.8 (Slepian PSWF Finite Fourier Projection Bound):
+/-- Slepian PSWF Finite Fourier Projection Bound:
     In the orthonormal PSWF basis on [-1, 1] with non-negative eigenvalues lambda_n ≥ 0,
     the finite Fourier projection satisfies:
-      ∫_{-2}^2 M(x) sinc(cx / π) / π dx = I_0(c) - ∑_{n} lambda_n a_n^2 ≤ I_0(c).
-    Fully machine-checked with ZERO sorry. -/
+      ∫_{-2}^2 M(x) sinc(cx / π) / π dx = I_0(c) - ∑_{n} lambda_n a_n^2 ≤ I_0(c). -/
 lemma pswf_projection_le_unmodulated
     {ι : Type*} [Fintype ι]
     (I0 : ℝ) (lam : ι → ℝ) (a : ι → ℝ)
@@ -511,17 +485,16 @@ lemma pswf_projection_le_unmodulated
     Finset.sum_nonneg (fun n _ => h_terms n)
   linarith
 
-/-- Lemma 8.9 (Four-Term Ramp Intersection Identity):
+/-- Four-Term Ramp Intersection Identity:
     For any two compact intervals [a, b] and [c, d] with a ≤ b and c ≤ d,
     the intersection length |[a, b] ∩ [c, d]| = max(0, min(b, d) - max(a, c))
     equals the alternating sum of four ramp evaluations:
-      max(0, b - c) - max(0, a - c) - max(0, b - d) + max(0, a - d).
-    Fully machine-checked with ZERO sorry. -/
+      max(0, b - c) - max(0, a - c) - max(0, b - d) + max(0, a - d). -/
 lemma four_term_ramp_identity (a b c d : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
     max 0 (min b d - max a c) = max 0 (b - c) - max 0 (a - c) - max 0 (b - d) + max 0 (a - d) := by
   rcases le_total a c with hac | hca
-  · rcases le_total b d with hbd | hdb
-    · -- Case 1: a <= c and b <= d
+  . rcases le_total b d with hbd | hdb
+    . -- Case 1: a <= c and b <= d
       have h1 : min b d = b := min_eq_left hbd
       have h2 : max a c = c := max_eq_right hac
       have h4 : a - c ≤ 0 := by linarith
@@ -529,7 +502,7 @@ lemma four_term_ramp_identity (a b c d : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
       have h6 : a - d ≤ 0 := by linarith
       rw [h1, h2, max_eq_left h4, max_eq_left h5, max_eq_left h6]
       ring
-    · -- Case 3: a <= c and d <= b ([c, d] ⊆ [a, b])
+    . -- Case 3: a <= c and d <= b ([c, d] ⊆ [a, b])
       have h1 : min b d = d := min_eq_right hdb
       have h2 : max a c = c := max_eq_right hac
       have h3 : 0 ≤ b - c := by linarith
@@ -539,8 +512,8 @@ lemma four_term_ramp_identity (a b c d : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
       have h_cd : 0 ≤ d - c := by linarith
       rw [h1, h2, max_eq_right h_cd, max_eq_right h3, max_eq_left h4, max_eq_right h5, max_eq_left h6]
       ring
-  · rcases le_total b d with hbd | hdb
-    · -- Case 4: c <= a and b <= d ([a, b] ⊆ [c, d])
+  . rcases le_total b d with hbd | hdb
+    . -- Case 4: c <= a and b <= d ([a, b] ⊆ [c, d])
       have h1 : min b d = b := min_eq_left hbd
       have h2 : max a c = a := max_eq_left hca
       have h3 : 0 ≤ b - c := by linarith
@@ -550,7 +523,7 @@ lemma four_term_ramp_identity (a b c d : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
       have h_ba : 0 ≤ b - a := by linarith
       rw [h1, h2, max_eq_right h_ba, max_eq_right h3, max_eq_right h4, max_eq_left h5, max_eq_left h6]
       ring
-    · -- Case 2: c <= a and d <= b
+    . -- Case 2: c <= a and d <= b
       have h1 : min b d = d := min_eq_right hdb
       have h2 : max a c = a := max_eq_left hca
       have h3 : 0 ≤ b - c := by linarith
@@ -558,19 +531,18 @@ lemma four_term_ramp_identity (a b c d : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
       have h5 : 0 ≤ b - d := by linarith
       rw [h1, h2, max_eq_right h3, max_eq_right h4, max_eq_right h5]
       rcases le_total a d with had | hda
-      · have h_da : 0 ≤ d - a := by linarith
+      . have h_da : 0 ≤ d - a := by linarith
         have h6 : a - d ≤ 0 := by linarith
         rw [max_eq_right h_da, max_eq_left h6]
         ring
-      · have h_da : d - a ≤ 0 := by linarith
+      . have h_da : d - a ≤ 0 := by linarith
         have h6 : 0 ≤ a - d := by linarith
         rw [max_eq_left h_da, max_eq_right h6]
         ring
 
-/-- Corollary 8.10 (Shifted Interval Four-Term Ramp Intersection):
+/-- Shifted Interval Four-Term Ramp Intersection:
     For shifted interval [c - x, d - x] and [a, b], the intersection length is:
-      max(0, x + b - c) - max(0, x + a - c) - max(0, x + b - d) + max(0, x + a - d).
-    Fully machine-checked with ZERO sorry. -/
+      max(0, x + b - c) - max(0, x + a - c) - max(0, x + b - d) + max(0, x + a - d). -/
 lemma shifted_interval_ramp_identity (a b c d x : ℝ) (hab : a ≤ b) (hcd : c ≤ d) :
     max 0 (min b (d - x) - max a (c - x)) =
       max 0 (x + b - c) - max 0 (x + a - c) - max 0 (x + b - d) + max 0 (x + a - d) := by
@@ -583,27 +555,25 @@ lemma shifted_interval_ramp_identity (a b c d x : ℝ) (hab : a ≤ b) (hcd : c 
   rw [h1, h2, h3, h4] at h
   exact h
 
-/-- Lemma 8.11 (Rational Solvability of Affine Equioscillation System):
+/-- Rational Solvability of Affine Equioscillation System:
     For any affine linear equiripple system A * X = b with integer matrix A ∈ ℤ^{n × n}
     and rational vector b ∈ ℚ^n, if det(A) ≠ 0, then the unique solution vector X
     (including the equioscillation minimax constant μ*) consists purely of rational numbers.
-    Underpins the 100-digit rational identification μ* ≈ 52946 / 127807.
-    Fully machine-checked with ZERO sorry. -/
+    Underpins the 100-digit rational identification μ* ≈ 52946 / 127807. -/
 lemma affine_equiripple_rational_solvability (A_det : ℚ) (h_det : A_det ≠ 0) (b_val : ℚ) :
     ∃ (x : ℚ), A_det * x = b_val := by
   use b_val / A_det
   rw [mul_comm]
   exact div_mul_cancel₀ b_val h_det
 
-/-- Lemma 8.12 (Parseval Harmonic Energy Budget Bound):
+/-- Parseval Harmonic Energy Budget Bound:
     For any sequence of non-negative weights w_n ≥ 0 and Fourier energy terms E_n ≥ 0,
     the weighted energy sum is non-negative:
       0 ≤ ∑ n, w_n * E_n.
     When each even cosine harmonic satisfies C_{n*π} = -E_n ≤ 0,
     the negative weighted sum satisfies:
       -∑ n, w_n * C_{n*π} = ∑ n, w_n * E_n ≥ 0.
-    Underpins White's Parseval harmonic budget -∑_{n=1}^{400} w_n C_{n*π} ≤ 1/2.
-    Fully machine-checked with ZERO sorry. -/
+    Underpins White's Parseval harmonic budget -∑_{n=1}^{400} w_n C_{n*π} ≤ 1/2. -/
 lemma weighted_harmonic_budget_bound
     {ι : Type*} [Fintype ι]
     (w : ι → ℝ) (E : ι → ℝ)
@@ -613,55 +583,49 @@ lemma weighted_harmonic_budget_bound
   intro i _
   exact mul_nonneg (hw i) (hE i)
 
-/-- Lemma 8.13 (Quadrisected Second-Moment Curvature Relief):
+/-- Quadrisected Second-Moment Curvature Relief:
     The quadrisected central bound m = 1/1280 strictly tightens the second moment budget:
-      B_2(1/1280) = 2/3 + 1/3276800 < 2/3 + 1/819200 = B_2(1/640).
-    Fully machine-checked with ZERO sorry. -/
+      B_2(1/1280) = 2/3 + 1/3276800 < 2/3 + 1/819200 = B_2(1/640). -/
 lemma quadrisected_second_moment_bound :
     (2 : ℝ) / 3 + 1 / 3276800 < (2 : ℝ) / 3 + 1 / 819200 := by
   norm_num
 
-/-- Lemma 8.14 (Exact Variational Duality Algebraic Relation):
+/-- Exact Variational Duality Algebraic Relation:
     The exact minimax equiripple duality relation satisfies:
-      1/2 - 1/4 * E_x - 1/4 * slack = 1/4 * (2 - E_x - slack).
-    Fully machine-checked with ZERO sorry. -/
+      1/2 - 1/4 * E_x - 1/4 * slack = 1/4 * (2 - E_x - slack). -/
 lemma variational_duality_algebraic_relation (E_x slack : ℝ) :
     (1 : ℝ) / 2 - 1 / 4 * E_x - 1 / 4 * slack = 1 / 4 * (2 - E_x - slack) := by
   ring
 
-/-- Lemma 8.15 (Leading-Order Elliptic Duality Relation):
+/-- Leading-Order Elliptic Duality Relation:
     When the active lag expectation satisfies E_nu[|x|] = 1 - E(k)/K(k) and slack = 0,
     the duality formula simplifies to the closed-form elliptic ratio:
-      1/2 - 1/4 * (1 - ratio) = 1/4 * (1 + ratio).
-    Fully machine-checked with ZERO sorry. -/
+      1/2 - 1/4 * (1 - ratio) = 1/4 * (1 + ratio). -/
 lemma leading_order_elliptic_duality_relation (ratio : ℝ) :
     (1 : ℝ) / 2 - 1 / 4 * (1 - ratio) = 1 / 4 * (1 + ratio) := by
   ring
 
-/-- Lemma 8.16 (Duffing First-Integral Algebraic Identity):
+/-- Duffing First-Integral Algebraic Identity:
     Verifies the algebraic structure of the cubic Duffing Hamiltonian first integral:
-      (y')^2 / 2 + α * y^2 / 2 + β * y^4 / 4 = 1/2 * ((y')^2 + α * y^2 + (β / 2) * y^4).
-    Fully machine-checked with ZERO sorry. -/
+      (y')^2 / 2 + α * y^2 / 2 + β * y^4 / 4 = 1/2 * ((y')^2 + α * y^2 + (β / 2) * y^4). -/
 lemma duffing_first_integral_identity (α β y y_prime : ℝ) :
     y_prime^2 / 2 + α * y^2 / 2 + β * y^4 / 4 =
       1 / 2 * (y_prime^2 + α * y^2 + (β / 2) * y^4) := by
   ring
 
-/-- Lemma 8.17 (Harmonic Node Odd Phase Parity):
+/-- Harmonic Node Odd Phase Parity:
     At active equioscillation nodes x_m = (2m+1)/5, the harmonic phase product
     (2n+1)*(2m+1) is an odd integer for all n, m ∈ ℤ:
-      (2n+1)*(2m+1) % 2 = 1.
-    Fully machine-checked with ZERO sorry. -/
+      (2n+1)*(2m+1) % 2 = 1. -/
 lemma harmonic_node_odd_phase (n m : ℤ) :
     (2 * n + 1) * (2 * m + 1) % 2 = 1 := by
   have h_odd : (2 * n + 1) * (2 * m + 1) = 2 * (2 * n * m + n + m) + 1 := by ring
   rw [h_odd]
   omega
 
-/-- Lemma 8.18 (Harmonic Node Sine Nullity):
+/-- Harmonic Node Sine Nullity:
     At active equioscillation nodes, all odd harmonic sine terms vanish identically:
-      sin((2n+1)(2m+1)π) = 0.
-    Fully machine-checked with ZERO sorry. -/
+      sin((2n+1)(2m+1)π) = 0. -/
 lemma harmonic_node_sin_nullity (n m : ℤ) :
     Real.sin (((2 * n + 1) * (2 * m + 1) : ℝ) * Real.pi) = 0 := by
   have h_cast : (((2 * n + 1) * (2 * m + 1) : ℝ) * Real.pi) = (((2 * n + 1) * (2 * m + 1) : ℤ) : ℝ) * Real.pi := by
@@ -669,10 +633,9 @@ lemma harmonic_node_sin_nullity (n m : ℤ) :
   rw [h_cast]
   exact Real.sin_int_mul_pi ((2 * n + 1) * (2 * m + 1))
 
-/-- Lemma 8.19 (Harmonic Node Cosine Minus One):
+/-- Harmonic Node Cosine Minus One:
     At active equioscillation nodes, all odd harmonic cosine terms evaluate to -1:
-      cos((2n+1)(2m+1)π) = -1.
-    Fully machine-checked with ZERO sorry. -/
+      cos((2n+1)(2m+1)π) = -1. -/
 lemma harmonic_node_cos_minus_one (n m : ℤ) :
     Real.cos (((2 * n + 1) * (2 * m + 1) : ℝ) * Real.pi) = -1 := by
   have h_ring : (((2 * n + 1) * (2 * m + 1) : ℝ) * Real.pi) =
@@ -686,11 +649,10 @@ lemma harmonic_node_cos_minus_one (n m : ℤ) :
   rw [h_cos]
   exact Real.cos_pi
 
-/-- Lemma 8.20 (Vacuum Boundary Slack Non-Negativity):
+/-- Vacuum Boundary Slack Non-Negativity:
     On the vacuum plateaus |t| ≥ L where h*(t) = -1/2 and the normal cone condition
     (K_nu* h*)(t) ≤ 0 holds, the integrand of the boundary harmonic slack is non-negative:
-      h*(t) * (K_nu* h*)(t) ≥ 0.
-    Fully machine-checked with ZERO sorry. -/
+      h*(t) * (K_nu* h*)(t) ≥ 0. -/
 lemma vacuum_boundary_slack_nonneg (h K_val : ℝ) (h_vac : h = -1/2) (h_cone : K_val ≤ 0) :
     0 ≤ h * K_val := by
   rw [h_vac]
@@ -699,11 +661,10 @@ lemma vacuum_boundary_slack_nonneg (h K_val : ℝ) (h_vac : h = -1/2) (h_cone : 
   have h_prod : 0 ≤ (1/2) * (-K_val) := mul_nonneg h_half_pos h_neg_pos
   linarith
 
-/-- Lemma 8.21 (Canonical Grid-Step Modulus Algebraic Square):
+/-- Canonical Grid-Step Modulus Algebraic Square:
     At the canonical discrete-to-continuum transition parameter k* = 2 / √5,
     the complementary modulus squared exactly matches the grid step Δt = 1/5:
-      1 - (2 / √5)^2 = 1/5.
-    Fully machine-checked with ZERO sorry. -/
+      1 - (2 / √5)^2 = 1/5. -/
 lemma canonical_modulus_square :
     1 - (2 / Real.sqrt 5)^2 = (1 : ℝ) / 5 := by
   have h5 : (0 : ℝ) < 5 := by norm_num
@@ -712,14 +673,13 @@ lemma canonical_modulus_square :
   rw [hdiv, hsq]
   norm_num
 
-/-- Theorem 8.22 (Single-Sum Autocorrelation Decomposition and Node Collapse):
+/-- Single-Sum Autocorrelation Decomposition and Node Collapse:
     For any finite harmonic expansion with frequencies ω_n and coefficients c_n, Γ_n,
     the continuous autocorrelation evaluates as:
       R(x) = ((2 - x) / 2) * ∑ n, c_n^2 * cos(ω_n * x) - ∑ n, Γ_n * sin(ω_n * x).
     When evaluated at an equioscillation node x_m where sin(ω_n * x_m) = 0 and cos(ω_n * x_m) = -1 for all n,
     all off-diagonal sine terms vanish unconditionally and the cosine terms invert to -1, yielding:
-      R(x_m) = - ((2 - x_m) / 2) * (∑ n, c_n^2).
-    Fully machine-checked with ZERO sorry. -/
+      R(x_m) = - ((2 - x_m) / 2) * (∑ n, c_n^2). -/
 theorem single_sum_autocorr_node_collapse
     {ι : Type*} [Fintype ι]
     (x_m : ℝ) (c Γ ω : ι → ℝ)
@@ -746,23 +706,21 @@ theorem single_sum_autocorr_node_collapse
 /-- Definition of the 5 equioscillation nodes x_m = (2m + 1)/5 for m ∈ {0, 1, 2, 3, 4}. -/
 noncomputable def equioscillationNode (m : ℤ) : ℝ := (2 * (m : ℝ) + 1) / 5
 
-/-- Lemma 8.23 (Five Equioscillation Nodes Domain Bound):
-    For all integer indices m with 0 ≤ m and m ≤ 4, the node x_m = (2m+1)/5 lies in [0, 2].
-    Fully machine-checked with ZERO sorry. -/
+/-- Five Equioscillation Nodes Domain Bound:
+    For all integer indices m with 0 ≤ m and m ≤ 4, the node x_m = (2m+1)/5 lies in [0, 2]. -/
 lemma equioscillation_node_bounds (m : ℤ) (hm0 : 0 ≤ m) (hm4 : m ≤ 4) :
     0 ≤ equioscillationNode m ∧ equioscillationNode m ≤ 2 := by
   dsimp [equioscillationNode]
   have hm0_r : (0 : ℝ) ≤ (m : ℝ) := by exact_mod_cast hm0
   have hm4_r : (m : ℝ) ≤ 4 := by exact_mod_cast hm4
   constructor
-  · linarith
-  · linarith
+  . linarith
+  . linarith
 
-/-- Theorem 8.24 (Equioscillation Node Overlap Evaluation):
+/-- Equioscillation Node Overlap Evaluation:
     At an equioscillation node x_m where R(x_m) = - (2 - x_m) * h_bar_sq,
     the continuous overlap M(x_m) = (2 - x_m)/4 - R(x_m) factors exactly as:
-      M(x_m) = (2 - x_m) * (1/4 + h_bar_sq).
-    Fully machine-checked with ZERO sorry. -/
+      M(x_m) = (2 - x_m) * (1/4 + h_bar_sq). -/
 theorem equioscillation_node_overlap_value (x_m h_bar_sq : ℝ) :
     (2 - x_m) / 4 - (- (2 - x_m) * h_bar_sq) = (2 - x_m) * (1/4 + h_bar_sq) := by
   ring
@@ -771,12 +729,11 @@ theorem equioscillation_node_overlap_value (x_m h_bar_sq : ℝ) :
 noncomputable def duffingHamiltonian (α β y y_prime : ℝ) : ℝ :=
   (y_prime^2) / 2 + α * (y^2) / 2 + β * (y^4) / 4
 
-/-- Theorem 8.25 (Duffing First Integral Energy Conservation):
+/-- Duffing First Integral Energy Conservation:
     Along any trajectory satisfying the cubic Duffing equation y'' + α * y + β * y^3 = 0,
     the time derivative of the Hamiltonian y' * y'' + α * y * y' + β * y^3 * y'
     vanishes identically:
-      y_prime * y_double_prime + α * y * y_prime + β * y^3 * y_prime = 0.
-    Fully machine-checked with ZERO sorry. -/
+      y_prime * y_double_prime + α * y * y_prime + β * y^3 * y_prime = 0. -/
 theorem duffing_energy_derivative_zero (α β y y_prime y_double_prime : ℝ)
     (h_eom : y_double_prime + α * y + β * y^3 = 0) :
     y_prime * y_double_prime + α * y * y_prime + β * y^3 * y_prime = 0 := by
@@ -785,22 +742,21 @@ theorem duffing_energy_derivative_zero (α β y y_prime y_double_prime : ℝ)
     _ = y_prime * 0 := by rw [h_eom]
     _ = 0 := by ring
 
-/-- Theorem 8.26 (Variational Duality Minimax Theorem):
+/-- Variational Duality Minimax Theorem:
     Under the exact variational duality condition:
       μ* = 1/2 - (1/4) * E_nu_x - (1/4) * slack,
     when the boundary harmonic slack vanishes (slack = 0), this simplifies to the exact formula:
       μ* = 1/2 - (1/4) * E_nu_x,
-    and equivalently equals (2 - E_nu_x - slack)/4.
-    Fully machine-checked with ZERO sorry. -/
+    and equivalently equals (2 - E_nu_x - slack)/4. -/
 theorem variational_duality_minimax_equality
     (mu_star E_nu_x slack : ℝ)
     (h_duality : mu_star = 1/2 - (1/4) * E_nu_x - (1/4) * slack) :
     (slack = 0 → mu_star = 1/2 - (1/4) * E_nu_x) ∧
     (mu_star = (2 - E_nu_x - slack) / 4) := by
   constructor
-  · intro h_slack
+  . intro h_slack
     rw [h_slack] at h_duality
     linarith
-  · linarith
+  . linarith
 
 end Erdos36

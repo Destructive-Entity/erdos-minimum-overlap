@@ -3,24 +3,15 @@
 [![Lean 4](https://img.shields.io/badge/Lean_4-Mathlib-blue)](formal/Erdos36.lean)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This repository contains the publication manuscript, certified verification engines, dual certificates, and Lean 4 formalization for **Erdős Problem #36** (the Minimum Overlap Problem).
+This repository contains the manuscript, the verification programs, the dual certificates and the Lean 4 file for Erdős Problem #36 (the minimum overlap problem).
 
----
+## Results
 
-## Results Summary
+**Lower bound.** $\mu > 0.38056171$ ($D_{\max} \le 2.62769470$). The 178-bin dual certificate `certs/erdos_elevated_candidate.json` is verified on every bin in 160-bit Arb ball arithmetic by `scripts/prove_erdos.py`. As an independent cross-check, the 192-bit MPFR verifier `scripts/verify_quadrisected_mpfr.c` evaluates the central certificate of Deng with the second-moment bound of the window $|\bar{x}| \le 1/1280$ and gives $D \le 2.62769373$ on that window.
 
-* **Certified Lower Bound**:
-  $$\mu > 0.38056239 \qquad (D_{\max} \le 2.62769001)$$
-  Certified across all 178 bins covering $[-1, 1]$ via 160-bit Arb interval ball arithmetic (`scripts/prove_erdos.py`), with the critical central subdivision ($m = 1/5120$) verified via 192-bit MPFR directed interval arithmetic with order-6 Taylor remainder bounding (`scripts/verify_mpfr_quadrisected`).
+**Discretized profile.** `certs/ultra_dense_8192_best.json` describes a step function with 512 steps whose overlap norm, evaluated exactly, is $0.38085905681456\ldots$. It does not improve the known upper bounds.
 
-* **Constructive Upper Bound**:
-  $$\mu \le 0.38085905681456...$$
-  Certified exact rational admissible-outright partition on $n = 8192$ with zero box violations (`certs/ultra_dense_8192_best.json`).
-
-* **Machine-Checked Formal Proofs**:
-  Foundational algebraic inequalities, fourth-moment balance identities, and majorant duality reductions formalized in Lean 4 with zero `sorry` against Mathlib (`formal/Erdos36.lean`).
-
----
+**Lean 4.** `formal/Erdos36.lean` contains no `sorry`. The elementary algebraic steps are proved in Lean; the analytic inputs, the theorem of Swinnerton-Dyer and the numerical certificate are stated as axioms.
 
 ## Repository Structure
 
@@ -32,76 +23,58 @@ This repository contains the publication manuscript, certified verification engi
 ├── formal/
 │   └── Erdos36.lean               # Lean 4 formalization
 ├── certs/
-│   ├── erdos_elevated_candidate.json         # 178-bin certified dual certificate
-│   ├── ultra_dense_8192_best.json            # n=8192 exact rational certificate
-│   ├── exact_transcendental_mu_100digits.json # 100-digit analytical evaluation
-│   └── verified_elevated_arb_report.json     # Arb verification report
+│   ├── erdos_elevated_candidate.json         # 178-bin dual certificate
+│   ├── ultra_dense_8192_best.json            # n = 8192 step-function profile
+│   └── verified_elevated_arb_report.json     # Report of a full Arb run
 └── scripts/
     ├── prove_erdos.py             # 160-bit Arb interval ball verifier
     ├── verify_quadrisected_mpfr.c # 192-bit MPFR order-6 Taylor verifier source
-    ├── verify_mpfr_quadrisected   # Compiled MPFR binary
-    ├── verify_quadrisected_world_record.py # Driver for 32 central chunks
-    ├── certify_leaders.py         # Exact rational certificate verifier
+    ├── verify_central_mpfr.py     # Compiles and runs the MPFR verifier on 32 chunks
+    ├── certify_leaders.py         # Exact evaluation of the step-function profile
     ├── repair_admissibility.py    # Admissibility checker for rational profiles
-    ├── verify_exact_transcendental_mu.py # 100-digit analytical evaluator
     ├── weighted_038056070_center_manifest.csv
     └── weighted_center_combined_038056070.txt
 ```
 
----
+## Replication
 
-## Replication Instructions
-
-### Prerequisites
-- Python 3.9+ with `flint` (`python-flint`), `mpmath`, `numpy`
-- GCC / Clang with `libmpfr` and `libgmp`
-- (Optional) Lean 4 (version 4.35.0+)
+Requirements: Python 3.9 or later with `python-flint`, `mpmath`, `numpy` and `scipy`; a C compiler with the GNU MPFR and GMP libraries; for the Lean file, Lean 4 with Mathlib.
 
 ```bash
-pip install python-flint mpmath numpy
+pip install python-flint mpmath numpy scipy
 ```
 
-### 1. Verify Central Bisection (192-bit MPFR Engine)
-The critical central subdivision ($m = 1/5120$) is certified across all 32 chunks via the high-order MPFR verifier:
+### Arb verification of the certificate
 
 ```bash
-python3 scripts/verify_quadrisected_world_record.py
+python3 scripts/prove_erdos.py certs/erdos_elevated_candidate.json --order 4 --prec 160 --target 0.38056171
 ```
 
-To recompile the C verifier from source:
-```bash
-gcc -O3 scripts/verify_quadrisected_mpfr.c -lmpfr -lgmp -o scripts/verify_mpfr_quadrisected
-```
+Certifies all 178 bins against the target $0.38056171$ and reports the worst bin, $[-1/512, 0]$, with $D \le 2.62769470$. The run takes about eight minutes on two cores.
 
-### 2. Verify Full-Domain Dual Certificate (160-bit Arb Ball Engine)
-Verifies all 178 bins in `certs/erdos_elevated_candidate.json` across 131,691 interval nodes:
+### MPFR cross-check of the central window
 
 ```bash
-python3 scripts/prove_erdos.py certs/erdos_elevated_candidate.json --order 4 --prec 160
+python3 scripts/verify_central_mpfr.py
 ```
 
-### 3. Verify Exact Rational Upper Bound Profile
-Verifies that the $n=8192$ partition is admissible outright with zero box violations:
+Compiles `scripts/verify_quadrisected_mpfr.c`, evaluates the 32 chunks listed in `scripts/weighted_038056070_center_manifest.csv` and reports $D \le 2.62769373$.
+
+### Exact evaluation of the step-function profile
 
 ```bash
 python3 scripts/certify_leaders.py certs/ultra_dense_8192_best.json
 ```
 
-### 4. Evaluate 100-Digit Analytical Closed Form
-Evaluates the variational Jacobi elliptic equioscillation closed-form solution to 100 decimal digits:
+The evaluation is in exact rational arithmetic and is slow at resolution 8192.
 
-```bash
-python3 scripts/verify_exact_transcendental_mu.py
-```
+### Lean 4 file
 
-### 5. Check Lean 4 Formalization
-To check the machine-verified formal proofs in `formal/Erdos36.lean`:
+From a Lake project that depends on Mathlib:
 
 ```bash
 lake env lean formal/Erdos36.lean
 ```
-
----
 
 ## Citation
 
